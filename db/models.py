@@ -19,6 +19,19 @@ class User(Base):
     premium = Column(Boolean, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
     updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
-    delisted = Column(Boolean, nullable=False, server_default='FALSE')
+    delisted = Column(Boolean, nullable=False)
     
     systems = relationship("System", back_populates="system_owner")
+
+class System(Base):
+    __tablename__= "systems"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    owner = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)
+    location = Column(String(100),nullable=False)
+    updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+    delisted = Column(Boolean, nullable=False)
+    
+    system_owner = relationship("User", back_populates="systems")

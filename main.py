@@ -1,26 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr
+from fastapi.staticfiles import StaticFiles
 
+from route.users import user_router
+from webroutes.admin import web_router
+
+origins = ["http://localhost:3000"]
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class User(BaseModel):
-    email: EmailStr
-    password: str
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/")
-async def home():
-    return [{"name": "Nikola", "gender": "male", "age": 46}, 
-            {"name": "Gordana", "gender": "female", "age": 47}]
-    
-@app.post("/")
-async def create_user(user: User):
-    return user
+app.include_router(user_router, tags=["users"])
+app.include_router(web_router)
+
+
+
+

@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional
 
-from schema import users
+from schema.devices import System
 
 
 class Token(BaseModel):
@@ -13,6 +13,10 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: str | None = None
     
+class Login(BaseModel):
+    username: str
+    password: str
+    
 
 class UserBase(BaseModel):
     username: str
@@ -20,8 +24,8 @@ class UserBase(BaseModel):
     name: str
     surname: str
     address: str
-    admin: bool
-    premium: bool
+    admin: bool = False
+    premium: bool = False
         
     
 class UserCreate(UserBase):
@@ -31,9 +35,10 @@ class UserCreate(UserBase):
     created_at: datetime = datetime.now()
         
 class User(UserBase):
+    delisted: bool
     updated_at: datetime
     created_at: datetime
-    systems: list[users.System] = []
+    systems: list[System] = []
     
     class Config:
         orm_mode = True

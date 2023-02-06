@@ -1,0 +1,99 @@
+{% extends "components/base.html" %}
+
+{% block navbar %}
+{% include "components/navbar.html"%}
+{% endblock %}
+
+{% block sidebar %}
+{% if current_user.admin: %}
+{% include "components/sidebar.html"%}
+{% endif %}
+{% endblock %}
+
+   
+{% block content %}
+     
+     <div class="p-3 text-center">
+        {% if current_user.delisted: %}
+        <h1 class="text-2xl font-bold tracking-wide text-center m-3 p-3">Thank you for registering on AgriTech web app.</h1>
+        <p class="text-md tracking-wide text-center p-4">Your account is not active yet, so please wait for our administrators to process your request.</p>
+        <p class="text-md tracking-wide text-center p-4">If you are urgently need activation, please contact us directly.</p>
+        {% endif %}
+   
+        {% if current_user.admin: %}
+      
+        <table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3">
+                        User data
+                    </th>
+                    <th scope="col" class="px-6 py-3">
+                        Subscription status
+                    </th>
+                    <th scope="col" class="px-6 py-3">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3">
+                        Action
+                    </th>
+                </tr>
+            </thead>
+            {% for user in users %}
+            <tbody>
+                <tr class="bg-white border-b hover:bg-gray-50">
+                    <th scope="row" class="flex items-center px-3 py-2 text-gray-900 whitespace-nowrap">
+                        <img class="w-10 h-10 rounded-full" src="/docs/images/people/profile-picture-1.jpg" alt="User image">
+                        <div class="pl-3">
+                            <div class="text-base font-semibold">{{ user.name }} {{ user.surname}}</div>
+                            <div class="font-normal text-gray-500"><a href="#">{{ user.email }}</a></div>
+                            <div class="font-normal text-gray-500">{{ user.address }}</div>
+                        </div>  
+                    </th>
+                    <td class="px-3 py-2 uppercase font-semibold text-xs">
+                        {% if user.premium: %}
+                        Premium user
+                        {% else %}
+                        Basic users
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center">
+                            {% if user.delisted: %}
+                            <div class="h-2.5 w-2.5 rounded-full bg-red-500 mr-2"></div> Inactive
+                            {% else %}
+                            <div class="h-2.5 w-2.5 rounded-full bg-green-500 mr-2"></div> Active
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2">
+                        <a href="#" class="font-medium text-blue-600 hover:underline">Edit user</a>
+                        <span>/<span>
+                        <a href="#" class="font-medium text-red-600 hover:underline">Delete user</a>
+                    </td>
+                </tr>
+            </tbody>
+            {% endfor %}
+        </table>
+        {% endif %} 
+
+        {% if not current_user.admin and not current_user.delisted: %}
+        {{ current_user.username}}</br>
+        {{ current_user.email}} </br>
+        {{ current_user.name}}</br>
+        {{ current_user.surname}}</br>
+        {{ current_user.address}}</br>
+        {{ current_user.admin}}</br>
+        {{ current_user.premium}}</br>
+        {{ current_user.created_at}}</br>
+        {{ current_user.updated_at}}</br>
+        {{ current_user.delisted}}</br>
+        {{ current_user.systems}}</br>
+        
+        {% endif %}
+
+
+     </div>
+
+{% endblock %}
+
