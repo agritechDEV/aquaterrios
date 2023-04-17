@@ -71,7 +71,7 @@ class SensorBase(BaseModel):
     set_lvl_1: bool = False
     set_lvl_2: bool = True
     set_lvl_3: bool = False
-    shift_id: int | None = None
+    shift_id: Union[int, None]= None
     
     
 class AddSensor(SensorBase):
