@@ -1,5 +1,9 @@
 from typing import Optional
 from datetime import datetime, timedelta
+import random
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2
 from fastapi.security.utils import get_authorization_scheme_param
@@ -80,4 +84,28 @@ def verify_token(token: str, credentials_exception):
     
     return token_data
     
+def generate_secret():
+    return ''.join(random.choices('0123456789abcdefghijklmnopqrsty', k=16))
+
+def send_key_to_mail(email: str, key: str):
+    port = 587
+    smtp_server = "smtp-mail.outlook.com"
+    sender = settings.email
+    receiver = email
+    password = settings.password
     
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Request for secret key"
+    msg["From"] = sender
+    msg["To"] = receiver
+    
+    text = f"Hello.\nYour secret key:\n {key}\nWith regards.\nAgritech Team"
+    body = MIMEText(text, 'plain')
+    msg.attach(body)
+    
+    server = smtplib.SMTP(smtp_server, port)
+    server.starttls()
+    server.login(sender, password)
+    server.sendmail(sender, receiver, msg.as_string())
+    print("Email was sent!")
+    server.quit()

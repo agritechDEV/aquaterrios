@@ -1,10 +1,10 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, StrictBool
 from datetime import datetime
 from typing import Optional
 
-from schema.devices import System
+from schema import devices
 
-
+# Deals with authorisation and authentications
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -17,7 +17,34 @@ class Login(BaseModel):
     username: str
     password: str
     
+class LostPassword(BaseModel):
+    password: str
+    
+class ResetPassword(BaseModel):
+    secret: str
+    password: str
 
+# Handle admins notifications to users
+class NoteCreate(BaseModel):
+    user: str
+    read: bool = False
+    message: str
+   
+
+class Notifications(BaseModel):
+    id: int
+    user: str
+    message: str
+    read: bool
+    date: datetime
+    
+    class Config:
+        orm_mode = True 
+
+class UpdateNote(BaseModel):
+    read: bool = True
+
+# Handle users reads and creates
 class UserBase(BaseModel):
     username: str
     email: EmailStr
@@ -31,14 +58,14 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     delisted: bool = True
-    updated_at: datetime = datetime.now()
-    created_at: datetime = datetime.now()
         
 class User(UserBase):
     delisted: bool
     updated_at: datetime
     created_at: datetime
-    systems: list[System] = []
+    
+    alerts: list[Notifications]= []
+    systems: list[devices.System] = []
     
     class Config:
         orm_mode = True
@@ -49,5 +76,18 @@ class UserUpdate(BaseModel):
     address: Optional[str]
     email: Optional[EmailStr]
     updated_at: datetime = datetime.now()
+
+class AdminUserUpdate(BaseModel):
+    admin: Optional[bool]
+    premium: Optional[bool]
     delisted: Optional[bool]
+
+#Subscriptions to services    
+class SubscriberCreate(BaseModel):
+    mail: str
+
+class Subscribtion(SubscriberCreate):
+    date: datetime
     
+    class Config:
+        orm_mode = True

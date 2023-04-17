@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     algorithm: str                        
     access_token_expire_minutes: int
     
+    email : str 
+    password: str
+    
     class Config:
         env_file = ".env"
     

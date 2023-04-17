@@ -38,3 +38,4 @@ def validate_user(db: Session, user: Login):
         )
 
     return db_user
+
