@@ -67,7 +67,7 @@ class Valve(ValveBase):
 #Sensor's schemas        
 class SensorBase(BaseModel):
     sensor_id: str
-    readings: Union[float, None] = None
+    readings: Optional[float] = 50
     set_lvl_1: bool = False
     set_lvl_2: bool = True
     set_lvl_3: bool = False
