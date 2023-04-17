@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from typing import List
 
 from db.database import get_db
 from schema.devices import AddFlowData, AddSensorData, GetFlowData, SensorData, LogCreate, Logs
@@ -22,7 +23,7 @@ def flow_data(flow: AddFlowData, db: Session = Depends(get_db)):
         return {"detail": "Couldn't find pump in database"}
 
 
-@api_router.get("/flowdata/{pump_id}", response_model=list[GetFlowData])
+@api_router.get("/flowdata/{pump_id}", response_model=List[GetFlowData])
 def all_flow_data(pump_id: str, db: Session = Depends(get_db)):
     try:
         db_data = devices.get_all_flow_data(db=db, pump_id=pump_id)
@@ -63,7 +64,7 @@ def sensor_data(sensor_data: AddSensorData, db: Session = Depends(get_db)):
         return {"detail": "Couldn't find sensor in database"}
 
 
-@api_router.get("/sensordata/{sensor_id}", response_model=list[SensorData])
+@api_router.get("/sensordata/{sensor_id}", response_model=List[SensorData])
 def all_sensor_data(sensor_id: str, db: Session = Depends(get_db)):
     try:
         db_data = devices.get_all_sensor_data(db=db, sensor_id=sensor_id)
@@ -95,7 +96,7 @@ def create_log(log: LogCreate, id: str, db: Session = Depends(get_db)):
         devices.create_log(db=db, log=log)
         return {"detail": "Successfully updated log"}
 
-@api_router.get("/systemlogs", response_model=list[list[Logs]])
+@api_router.get("/systemlogs", response_model=List[List[Logs]])
 def get_system_logs(system_id: int, db: Session = Depends(get_db)):
   
     pumps = devices.get_system_pumps(db=db, system_id=system_id)

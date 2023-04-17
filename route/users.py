@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -92,7 +93,7 @@ def subscribe(subscriber: SubscriberCreate, db: Session = Depends(get_db)):
     users.subscribe(db=db, new_subscriber=subscriber)
     return {"detail": "Thank you for your registration."}
 
-@user_router.get("/users", response_model=list[User])
+@user_router.get("/users", response_model=List[User])
 def read_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
     db_users = users.get_users(db=db, skip=skip, limit=limit)
     return db_users
