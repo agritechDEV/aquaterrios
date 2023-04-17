@@ -8,7 +8,7 @@ from route.protected import base_router
 from route.general import general_router
 from route.api import api_router
 
-origins = ["http://localhost:3000"]
+origins = ["*"]
 
 app = FastAPI()
 app.add_middleware(
