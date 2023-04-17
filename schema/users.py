@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr, StrictBool
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from schema import devices
 
@@ -64,8 +64,8 @@ class User(UserBase):
     updated_at: datetime
     created_at: datetime
     
-    alerts: list[Notifications]= []
-    systems: list[devices.System] = []
+    alerts: List[Notifications]= []
+    systems: List[devices.System] = []
     
     class Config:
         orm_mode = True

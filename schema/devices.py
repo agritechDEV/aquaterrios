@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime, time
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 
 #Pump's schemas    
@@ -198,10 +198,10 @@ class System(SystemBase):
     owner: str
     created_at: datetime
     updated_at: datetime
-    system_pumps: list[Pump] = []
-    system_valves: list[Valve] = []
-    system_sensors: list[Sensor]= []
-    system_shifts: list[Shifts]= []
+    system_pumps: List[Pump] = []
+    system_valves: List[Valve] = []
+    system_sensors: List[Sensor]= []
+    system_shifts: List[Shifts]= []
  
     class Config:
         orm_mode = True
