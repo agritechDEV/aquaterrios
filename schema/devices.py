@@ -1,14 +1,14 @@
 from pydantic import BaseModel
-from datetime import datetime, time, date
-from typing import Optional
+from datetime import datetime, time
+from typing import Optional, Union
 
 
 #Pump's schemas    
 class Flow(BaseModel):
     pump_id: str
-    capacity: float | None = None
-    available: float | None = None
-    current: float | None = None
+    capacity: Union[float, None] = None
+    available: Union[float, None] = None
+    current: Union[float, None] = None
     
 
 class AddPump(Flow):
@@ -43,9 +43,9 @@ class GetFlowData(BaseModel):
 #Valve's schemas
 class ValveBase(BaseModel):
     valve_id: str
-    status: bool | None = None
+    status: Union[bool, None] = None
     mode: str 
-    shift_id: int | None = None
+    shift_id: Union[int, None] = None
     
 class AddValve(ValveBase):
     system_id: int
@@ -67,7 +67,7 @@ class Valve(ValveBase):
 #Sensor's schemas        
 class SensorBase(BaseModel):
     sensor_id: str
-    readings: float | None = None
+    readings: Union[float, None] = None
     set_lvl_1: bool = False
     set_lvl_2: bool = True
     set_lvl_3: bool = False
@@ -162,18 +162,18 @@ class Shifts(BaseModel):
     id: int
     system_id: int
     mode: str 
-    sensors_settings: str | None = None
-    turn_on: float | None = None
-    turn_off: float | None = None
-    Mon: bool | None = None
-    Tue: bool | None = None
-    Wed: bool | None = None
-    Thu: bool | None = None
-    Fri: bool | None = None
-    Sat: bool | None = None
-    Sun: bool | None = None
-    start: time | None = None
-    stop: time | None = None
+    sensors_settings: Union[str, None] = None
+    turn_on: Union[float, None] = None
+    turn_off: Union[float, None] = None
+    Mon: Union[bool, None] = None
+    Tue: Union[bool, None] = None
+    Wed: Union[bool, None] = None
+    Thu: Union[bool, None] = None
+    Fri: Union[bool, None] = None
+    Sat: Union[bool, None] = None
+    Sun: Union[bool, None] = None
+    start: Union[time, None] = None
+    stop: Union[time, None] = None
     created_at: datetime
     updated_at: datetime
     

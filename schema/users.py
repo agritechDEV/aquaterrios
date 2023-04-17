@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, StrictBool
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 from schema import devices
 
@@ -11,7 +11,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: str | None = None
+    username: Union[str, None] = None
     
 class Login(BaseModel):
     username: str
