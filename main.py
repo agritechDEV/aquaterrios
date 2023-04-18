@@ -7,11 +7,11 @@ from webroutes.admin import web_router
 from route.protected import base_router
 from route.api import api_router
 
-# Uncomment next lines if you are using Render.com for hosting due to lack of alembic support
-from db import models
-from db.database import engine
+""" Uncomment following three lines if you are using render.com for hosting due to lack of alembic support """
+#from db import models
+#from db.database import engine
 
-models.Base.metadata.create_all(bind=engine)
+#models.Base.metadata.create_all(bind=engine)
 
 origins = ["*"]
 
