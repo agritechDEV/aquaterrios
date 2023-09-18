@@ -229,6 +229,7 @@ block content %}
               </thead>
               <tbody>
                 {% for shift in system.system_shifts %}
+                
                 <tr class="bg-white border-b">
                   <th
                     scope="row"
@@ -237,19 +238,25 @@ block content %}
                     # {{ shift.id }}
                   </th>
                   <td class="px-3 py-4">{{shift.mode}}</td>
-                  <td class="px-3 py-4">
+                  <td class="px-3 py-4">           
                     <div class="flex flex-row">
-                      {% for valve in system.system_valves %} {% if
-                      valve.shift_id == shift.id %}
+                      {% for section in shift.shifts_sections %}
+                      {% if section.shift_id == shift.id %}{% for valve in system.system_valves %}
+                      {% if valve.valve_id == section.valve_id %}
+                      {% if valve.status %}
+                      <div class="h-2 w-2.5 rounded-full bg-green-500"></div>
+                      {% else %}
+                      <div class="h-2 w-2.5 rounded-full bg-red-500"></div>
+                      {% endif %} {% endif %} {% endfor %}
                       <div class="text-xs text-blue-500 mr-4">
                         <img
                           class="w-6 h-6 rounded-full inline-block mr-2"
                           src="/static/images/valve.png"
                           alt="valve image"
                         />
-                        {{valve.valve_id}}
+                        {{section.valve_id}}
                       </div>
-                      {% endif %} {% endfor %}
+                      {% endif %} {% endfor %} 
                     </div>
                   </td>
                   {% if shift.mode == "TIMER" %}
@@ -257,8 +264,8 @@ block content %}
                   {% else %}
                   <td class="px-3 py-4">
                     <div class="flex flex-row">
-                      {% for sensor in system.system_sensors %} {% if
-                      sensor.shift_id == shift.id %}
+                      {% for sensor in system.system_sensors %} {% for section in shift.shifts_sections %}
+                      {% if section.shift_id == shift.id %} 
                       <div class="text-xs text-blue-500 mr-4">
                         <span
                           class="chart"
@@ -266,21 +273,32 @@ block content %}
                         >
                           <span class="percent"></span>
                         </span>
-                      </div>
-                      {% endif %} {% endfor %}
-                    </div>
+                      </div>{% endif %} {% endfor %} {% endfor %}
+                    </div>  
                   </td>
                   {% endif %} {% if shift.mode == "SENSOR" %}
-                  <td class="px-3 py-4">{{shift.turn_on}}</td>
+                  <td class="px-3 py-4">
+                  {% for section in shift.shifts_sections %} {% if section.shift_id == shift.id %} {% for controler in sensor_controlers%}
+                  {% if controler.section_id == section.id %}
+                   {{controler.starts_at}} </br>
+                  {% endif %} {% endfor %} {% endif %} {% endfor %} </td>
                   {% else %}
-                  <td class="px-3 py-4">{{shift.start}}</td>
+                  <td class="px-3 py-4">
+                    {% for controler in timer_controlers %} {% if controler.shift_id == shift.id %}
+                    {{controler.day}} / {{controler.starts}} </br> {% endif %} {% endfor%} </td>
                   {% endif %} {% if shift.mode == "SENSOR" %}
-                  <td class="px-3 py-4">{{shift.turn_off}}</td>
+                  <td class="px-3 py-4">
+                    {% for section in shift.shifts_sections %} {% if section.shift_id == shift.id %} {% for controler in sensor_controlers%}
+                    {% if controler.section_id == section.id %}
+                     {{controler.stops_at}} </br>
+                    {% endif %} {% endfor %} {% endif %} {% endfor %} </td>
                   {% else %}
-                  <td class="px-3 py-4">{{shift.stop}}</td>
+                  <td class="px-3 py-4">
+                    {% for controler in timer_controlers %} {% if controler.shift_id == shift.id %}
+                    {{controler.stops}} </br> {% endif %} {% endfor%} </td>
                   {% endif %}
                 </tr>
-                {% endfor %}
+                {% endfor %} 
               </tbody>
             </table>
           </div>
@@ -656,10 +674,8 @@ block content %}
                 <tr>
                   <th scope="col" class="px-3 py-3">Valve ID</th>
                   <th scope="col" class="px-3 py-3">Valve Status</th>
-                  <th scope="col" class="px-3 py-3">Current Mode</th>
                   <th scope="col" class="px-3 py-3">Last update</th>
                   <th scope="col" class="px-3 py-3">Current Shift ID</th>
-                  <th scope="col" class="px-3 py-3">Edit settings</th>
                 </tr>
               </thead>
               <tbody>
@@ -671,96 +687,17 @@ block content %}
                   >
                     {{ valve.valve_id }}
                   </th>
-                  <td class="px-3 py-4">{{valve.status}}</td>
-                  <td class="px-3 py-4">{{valve.mode}}</td>
+                  {% if valve.status %}
+                  <td class="px-3 py-4">Open</td>
+                  {% else %}
+                  <td class="px-3 py-4">Closed</td>
+                  {% endif %}
                   <td class="px-3 py-4">
                     {{valve.updated_at.strftime("%d-%m-%Y, %H:%M")}}
                   </td>
-                  <td class="px-3 py-4"># {{ valve.shift_id}}</td>
-                  <td class="px-3 py-4">
-                    <a
-                      data-modal-target="valve-{{valve.valve_id}}-update-modal"
-                      data-modal-toggle="valve-{{valve.valve_id}}-update-modal"
-                      class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-                      ><svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        class="w-6 h-6"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                    </a>
-                  </td>
+                  {% for shift in system.system_shifts %} {% for section in shift.shifts_sections %} {% if section.valve_id == valve.valve_id%}
+                  <td class="px-3 py-4"># {{ section.shift_id}}</td> {% endif %} {% endfor %} {% endfor %}
                 </tr>
-                <!-- Main modal -->
-                <div
-                  id="valve-{{valve.valve_id}}-update-modal"
-                  tabindex="-1"
-                  aria-hidden="true"
-                  class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                >
-                  <div class="relative w-full h-full max-w-md md:h-auto">
-                    <!-- Modal content -->
-                    <div class="relative bg-white rounded-lg shadow">
-                      <button
-                        type="button"
-                        class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                        data-modal-hide="valve-{{valve.valve_id}}-update-modal"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          class="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clip-rule="evenodd"
-                          ></path>
-                        </svg>
-                        <span class="sr-only">Close modal</span>
-                      </button>
-                      <div class="px-6 py-6 lg:px-8">
-                        <h3 class="mb-4 text-xl font-medium text-gray-900">
-                          Change valve mode
-                        </h3>
-                        <form class="space-y-6">
-                          <div>
-                            <label
-                              for="valve-mode"
-                              class="block mb-2 text-sm font-medium text-gray-900"
-                              >Mode</label
-                            >
-                            <select
-                              id="valve-mode"
-                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                            >
-                              {% for option in options %}
-                              <option value="{{option}}">{{option}}</option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                          <button
-                            type="button"
-                            class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-                            data-modal-hide="valve-{{valve.valve_id}}-update-modal"
-                            onclick=valveUpdate("{{valve.valve_id}}")
-                          >
-                            Change
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {% endfor %}
               </tbody>
             </table>
@@ -782,14 +719,16 @@ block content %}
                 <tr>
                   <th scope="col" class="px-3 py-3">Sensor ID</th>
                   <th scope="col" class="px-3 py-3">Current Readings</th>
-                  <th scope="col" class="px-3 py-3">Current Shift</th>
+                  <th scope="col" class="px-3 py-3">Current Section ID</th>
                   <th scope="col" class="px-3 py-3">Last update</th>
                   <th scope="col" class="px-3 py-3">View data</th>
                   <th scope="col" class="px-3 py-3">Edit settings</th>
                 </tr>
               </thead>
               <tbody>
+                
                 {% for sensor in system.system_sensors %}
+                
                 <tr class="bg-white border-b">
                   <th
                     scope="row"
@@ -798,11 +737,23 @@ block content %}
                     {{ sensor.sensor_id }}
                   </th>
                   <td class="px-3 py-4">
-                    <span class="chart" data-percent=" {{ sensor.readings }}">
+                    {% for sensor_x in sensor_data %}
+                    <span class="chart" data-percent=" {{ sensor_x.level_1 }}">
                       <span class="percent"></span>
                     </span>
-                  </td>
-                  <td class="px-3 py-4"># {{sensor.shift_id}}</td>
+                    <span class="chart" data-percent=" {{ sensor_x.level_2 }}">
+                      <span class="percent"></span>
+                    </span>
+                    <span class="chart" data-percent=" {{ sensor_x.level_3 }}">
+                      <span class="percent"></span>
+                    </span>
+                    {% endfor %}
+                  </td> 
+                  
+                  <td class="px-3 py-4">
+                    {% for controler in section.section_sensors %}
+                    {% if sensor.sensor_id == controler.sensor_id %}
+                  # {{controler.section_id}} </br> {% endif %} {% endfor %} </td>
                   <td class="px-3 py-4">
                     {{sensor.updated_at.strftime("%d-%m-%Y, %H:%M")}}
                   </td>
@@ -882,9 +833,9 @@ block content %}
                         <form class="space-y-6">
                           <input
                             type="hidden"
-                            name="shift_id"
+                            name="section_id"
                             id="sensor-hidden-shift-id"
-                            value="{{sensor.shift_id}}"
+                            value="{{sensor.section_id}}"
                           />
                           <ul
                             class="w-48 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg"
@@ -957,7 +908,7 @@ block content %}
                     </div>
                   </div>
                 </div>
-
+               
                 {% endfor %}
               </tbody>
             </table>
@@ -971,1175 +922,17 @@ block content %}
       role="tabpanel"
       aria-labelledby="shifts-tab"
     >
-      <div class="mb-4 border-b border-gray-200">
-        <ul
-          class="flex -mb-px text-sm font-medium text-center"
-          data-tabs-toggle="#shiftContent"
-          role="tablist"
-        >
-          <li class="mr-2 w-full">
-            <button
-              class="inline-block p-4 border-b-2 rounded-t-lg"
-              id="sensor-shifts-tab"
-              data-tabs-target="#sensorShifts"
-              type="button"
-              role="tab"
-              aria-selected="false"
-            >
-              Sensor Shifts
-            </button>
-          </li>
-          <li class="mr-2 w-full">
-            <button
-              class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300"
-              id="timer-shifts-tab"
-              data-tabs-target="#timerShifts"
-              type="button"
-              role="tab"
-              aria-selected="false"
-            >
-              Timer Shifts
-            </button>
-          </li>
-        </ul>
-      </div>
-      <div id="shiftContent">
-        <div
-          class="hidden p-4 rounded-lg bg-gray-50"
-          id="sensorShifts"
-          role="tabpanel"
-        >
-          <div class="relative overflow-x-auto">
-            <table class="w-full text-sm text-left text-blue-500">
-              <thead class="text-xs text-blue-500 uppercase bg-gray-50">
-                <tr>
-                  <th scope="col" class="px-3 py-3">Shift ID</th>
-                  <th scope="col" class="px-3 py-3">Shift Valves</th>
-                  <th scope="col" class="px-3 py-3">Shift Sensors</th>
-                  <th scope="col" class="px-3 py-3">Shift Settings</th>
-                  <th scope="col" class="px-3 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for shift in system.system_shifts %} {% if shift.mode ==
-                "SENSOR" %}
-                <tr class="bg-white border-b">
-                  <th
-                    scope="row"
-                    class="px-3 py-4 font-medium text-blue-500 whitespace-nowrap"
-                  >
-                    {{ shift.id }}
-                  </th>
-                  <td class="px-3 py-4">
-                    <div class="flex flex-row">
-                      {% for valve in system.system_valves %} {% if
-                      valve.shift_id == shift.id %}
-                      <div class="text-xs text-blue-500 mr-4">
-                        <img
-                          class="w-6 h-6 rounded-full inline-block mr-2"
-                          src="/static/images/valve.png"
-                          alt="valve image"
-                        />
-                        {{valve.valve_id}}
-                      </div>
-                      {% endif %} {% endfor %}
-                      <div>
-                        <a
-                          data-modal-target="add-sensor-valve-modal-{{shift.id}}"
-                          data-modal-toggle="add-sensor-valve-modal-{{shift.id}}"
-                          class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-                          ><svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            class="w-6 h-6"
-                          >
-                            <path
-                              fill-rule="evenodd"
-                              d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z"
-                              clip-rule="evenodd"
-                            />
-                          </svg>
-                        </a>
-                      </div>
-                    </div>
-                    <!-- Main add valve modal -->
-                    <div
-                      id="add-sensor-valve-modal-{{shift.id}}"
-                      tabindex="-1"
-                      aria-hidden="true"
-                      class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                    >
-                      <div class="relative w-full h-full max-w-md md:h-auto">
-                        <!-- Modal content -->
-                        <div class="relative bg-white rounded-lg shadow">
-                          <button
-                            type="button"
-                            class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                            data-modal-hide="add-sensor-valve-modal-{{shift.id}}"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              class="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                fill-rule="evenodd"
-                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                clip-rule="evenodd"
-                              ></path>
-                            </svg>
-                            <span class="sr-only">Close modal</span>
-                          </button>
-                          <div class="px-6 py-6 lg:px-8">
-                            <form class="space-y-6 overflow-y-scroll">
-                              <label for="shift-valve-id"
-                                >Selected valve will be added to Shift ID:
-                                {{shift.id}}:</label
-                              >
-                              {% for valve in system.system_valves %} {% if
-                              valve.shift_id != shift.id %}
-                              <div
-                                class="flex items-center pl-4 border border-gray-200 rounded"
-                              >
-                                <input
-                                  type="radio"
-                                  value="{{valve.valve_id}}"
-                                  name="sensor-valve"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  class="w-full py-4 ml-2 text-sm text-gray-900"
-                                  >{{valve.valve_id}}</label
-                                >
-                              </div>
-                              {% endif %} {% endfor %}
-                              <button
-                                type="button"
-                                data-modal-hide="add-sensor-valve-modal-{{shift.id}}"
-                                onclick=sensorValve("{{shift.id}}")
-                                class="w-full text-white bg-[#0b545c] hover:bg-emerald-600 focus:ring-4 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-                              >
-                                Add Valve
-                              </button>
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-3 py-4">
-                    <div class="flex flex-row flex-wrap">
-                      {% for sensor in system.system_sensors %} {% if
-                      sensor.shift_id == shift.id %}
-                      <div class="text-xs text-blue-500 mr-4 flex">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          class="w-6 h-6"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M5.636 4.575a.75.75 0 010 1.06 9 9 0 000 12.729.75.75 0 01-1.06 1.06c-4.101-4.1-4.101-10.748 0-14.849a.75.75 0 011.06 0zm12.728 0a.75.75 0 011.06 0c4.101 4.1 4.101 10.749 0 14.85a.75.75 0 11-1.06-1.061 9 9 0 000-12.728.75.75 0 010-1.06zM7.757 6.696a.75.75 0 010 1.061 6 6 0 000 8.485.75.75 0 01-1.06 1.061 7.5 7.5 0 010-10.607.75.75 0 011.06 0zm8.486 0a.75.75 0 011.06 0 7.5 7.5 0 010 10.607.75.75 0 01-1.06-1.06 6 6 0 000-8.486.75.75 0 010-1.06zM9.879 8.818a.75.75 0 010 1.06 3 3 0 000 4.243.75.75 0 11-1.061 1.06 4.5 4.5 0 010-6.363.75.75 0 011.06 0zm4.242 0a.75.75 0 011.061 0 4.5 4.5 0 010 6.364.75.75 0 01-1.06-1.06 3 3 0 000-4.244.75.75 0 010-1.06zM10.875 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"
-                            clip-rule="evenodd"
-                          />
-                        </svg>
-                        <div class="ml-2">{{sensor.sensor_id}}</div>
-                      </div>
-                      {% endif %} {% endfor %}
-                      <div>
-                        <a
-                          data-modal-target="add-sensor-modal-{{shift.id}}"
-                          data-modal-toggle="add-sensor-modal-{{shift.id}}"
-                          class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-                          ><svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            class="w-6 h-6"
-                          >
-                            <path
-                              fill-rule="evenodd"
-                              d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z"
-                              clip-rule="evenodd"
-                            />
-                          </svg>
-                        </a>
-                      </div>
-                    </div>
-                    <!-- Main add sensor modal -->
-                    <div
-                      id="add-sensor-modal-{{shift.id}}"
-                      tabindex="-1"
-                      aria-hidden="true"
-                      class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                    >
-                      <div class="relative w-full h-full max-w-md md:h-auto">
-                        <!-- Modal content -->
-                        <div class="relative bg-white rounded-lg shadow">
-                          <button
-                            type="button"
-                            class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                            data-modal-hide="add-sensor-modal-{{shift.id}}"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              class="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                fill-rule="evenodd"
-                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                clip-rule="evenodd"
-                              ></path>
-                            </svg>
-                            <span class="sr-only">Close modal</span>
-                          </button>
-                          <div class="px-6 py-6 lg:px-8">
-                            <form class="space-y-6 overflow-y-scroll">
-                              <label for="shift-sensor-id"
-                                >Selected sensor will be added to Shift
-                                ID:{{shift.id}}:</label
-                              >
-                              {% for sensor in system.system_sensors %} {% if
-                              sensor.shift_id != shift.id %}
-                              <div
-                                class="flex items-center pl-4 border border-gray-200 rounded"
-                              >
-                                <input
-                                  type="radio"
-                                  value="{{sensor.sensor_id}}"
-                                  name="shift-sensor"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  class="w-full py-4 ml-2 text-sm text-gray-900"
-                                  >{{sensor.sensor_id}}</label
-                                >
-                              </div>
-                              {% endif %} {% endfor %}
-                              <button
-                                type="button"
-                                data-modal-hide="add-sensor-modal-{{shift.id}}"
-                                onclick=addShiftSensor("{{shift.id}}")
-                                class="w-full text-white bg-[#0b545c] hover:bg-emerald-600 focus:ring-4 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-                              >
-                                Add Sensor
-                              </button>
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-3 py-4">
-                    Starts at: {{shift.turn_on}} / Stops at: {{shift.turn_off}}
-                  </td>
-                  <td class="px-3 py-4 flex">
-                    <a
-                      data-modal-target="update-sensor-{{shift.id}}-modal"
-                      data-modal-toggle="update-sensor-{{shift.id}}-modal"
-                      class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-                      ><svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        class="w-6 h-6"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                    </a>
-                    /
-                    <a
-                      data-modal-target="delete-{{shift.id}}-modal"
-                      data-modal-toggle="delete-{{shift.id}}-modal"
-                      class="font-medium text-red-600 hover:underline hover:cursor-pointer"
-                      ><svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        class="w-6 h-6"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                    </a>
-                  </td>
-                </tr>
-                <!--shift delete modal -->
-                <div
-                  id="delete-{{shift.id}}-modal"
-                  tabindex="-1"
-                  class="fixed top-0 left-0 right-0 z-50 hidden p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                >
-                  <div class="relative w-full h-full max-w-md md:h-auto">
-                    <div class="relative bg-white rounded-lg shadow">
-                      <button
-                        type="button"
-                        class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                        data-modal-hide="delete-{{shift.id}}-modal"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          class="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clip-rule="evenodd"
-                          ></path>
-                        </svg>
-                        <span class="sr-only">Close modal</span>
-                      </button>
-                      <div class="p-6 text-center">
-                        <svg
-                          aria-hidden="true"
-                          class="mx-auto mb-4 text-gray-400 w-14 h-14"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          ></path>
-                        </svg>
-                        <h3 class="mb-5 text-lg font-normal text-gray-500">
-                          Are you sure you want to delete shift {{shift.id}} ?
-                        </h3>
-                        <button
-                          data-modal-hide="delete-{{shift.id}}-modal"
-                          type="button"
-                          onclick=deleteShift("{{shift.id}}")
-                          class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2"
-                        >
-                          Yes, I'm sure
-                        </button>
-                        <button
-                          data-modal-hide="delete-{{shift.id}}-modal"
-                          type="button"
-                          class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
-                        >
-                          No, cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Main update shift modal -->
-                <div
-                  id="update-sensor-{{shift.id}}-modal"
-                  tabindex="-1"
-                  aria-hidden="true"
-                  class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                >
-                  <div class="relative w-full h-full max-w-md md:h-auto">
-                    <!-- Modal content -->
-                    <div class="relative bg-white rounded-lg shadow">
-                      <button
-                        type="button"
-                        class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                        data-modal-hide="update-sensor-{{shift.id}}-modal"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          class="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clip-rule="evenodd"
-                          ></path>
-                        </svg>
-                        <span class="sr-only">Close modal</span>
-                      </button>
-                      <div class="px-6 py-6 lg:px-8">
-                        <h3 class="mb-4 text-xl font-medium text-gray-900">
-                          Change shift settings
-                        </h3>
-                        <form class="space-y-6">
-                          <input
-                            type="hidden"
-                            name="mode"
-                            id="sensor-mode"
-                            value="{{shift.mode}}"
-                          />
-                          <h3 class="mb-4 text-md text-gray-900">
-                            Select sensor mode:
-                          </h3>
-                          <div
-                            class="flex items-center pl-4 border border-gray-200 rounded"
-                          >
-                            <input
-                              type="radio"
-                              value="ONE"
-                              name="sensors_settings"
-                              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                            />
-                            <label
-                              class="w-full py-4 ml-2 text-sm text-gray-900"
-                              >Start shift if one sensor reach limits</label
-                            >
-                          </div>
-                          <div
-                            class="flex items-center pl-4 border border-gray-200 rounded dark:border-gray-700"
-                          >
-                            <input
-                              type="radio"
-                              value="AVG"
-                              name="sensors_settings"
-                              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                            />
-                            <label
-                              class="w-full py-4 ml-2 text-sm text-gray-900"
-                              >Start shift if average sensor values reach
-                              limits</label
-                            >
-                          </div>
-                          <div
-                            class="flex items-center pl-4 border border-gray-200 rounded dark:border-gray-700"
-                          >
-                            <input
-                              type="radio"
-                              value="ALL"
-                              name="sensors_settings"
-                              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                            />
-                            <label
-                              class="w-full py-4 ml-2 text-sm text-gray-900"
-                              >Start shift if all sensors reach limits</label
-                            >
-                          </div>
-                          <h3 class="mb-4 text-md text-gray-900">
-                            Select sensor turn on value:
-                          </h3>
-                          <div>
-                            <label
-                              for="turn_on"
-                              class="block mb-2 text-sm font-medium text-gray-900"
-                              >Turn On</label
-                            >
-                            <input
-                              type="number"
-                              id="turn_on"
-                              name="turn_on"
-                              min="0"
-                              max="100"
-                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                              placeholder="50"
-                            />
-                          </div>
-                          <h3 class="mb-4 text-md text-gray-900">
-                            Select sensor turn off value:
-                          </h3>
-                          <div>
-                            <label
-                              for="turn_off"
-                              class="block mb-2 text-sm font-medium text-gray-900"
-                              >Turn Off</label
-                            >
-                            <input
-                              type="number"
-                              id="turn_off"
-                              name="turn_off"
-                              min="0"
-                              max="100"
-                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                              placeholder="50"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-                            data-modal-hide="update-sensor-{{shift.id}}-modal"
-                            onclick=sensorShiftUpdate("{{shift.id}}")
-                          >
-                            Change
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {% endif %} {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <div>
-            <a
-              data-modal-target="add-sensor-shift-modal"
-              data-modal-toggle="add-sensor-shift-modal"
-              class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-              ><svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="w-6 h-6"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </a>
-          </div>
-          <!-- add sensor shift modal -->
-          <div
-            id="add-sensor-shift-modal"
-            tabindex="-1"
-            class="fixed top-0 left-0 right-0 z-50 hidden p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-          >
-            <div class="relative w-full h-full max-w-md md:h-auto">
-              <div class="relative bg-white rounded-lg shadow">
-                <button
-                  type="button"
-                  class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                  data-modal-hide="add-sensor-shift-modal"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    ></path>
-                  </svg>
-                  <span class="sr-only">Close modal</span>
-                </button>
-                <div class="p-6 text-center">
-                  <svg
-                    aria-hidden="true"
-                    class="mx-auto mb-4 text-gray-400 w-14 h-14"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
-                  <h3 class="mb-5 text-lg font-normal text-gray-500">
-                    Are you sure you want to create new shift ?
-                  </h3>
-                  <form
-                    id="addSensorShiftForm"
-                    class="space-y-6"
-                    action="/base/sensorShift"
-                  >
-                    <input
-                      type="hidden"
-                      name="system_id"
-                      value="{{system.id}}"
-                    />
-                    <button
-                      data-modal-hide="add-sensor-shift-modal"
-                      type="submit"
-                      class="text-white bg-[#0b545c] hover:bg-emerald-600 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2"
-                    >
-                      Yes, I'm sure
-                    </button>
-                    <button
-                      data-modal-hide="add-sensor-shift-modal"
-                      type="button"
-                      class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
-                    >
-                      No, cancel
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div
-          class="hidden p-4 rounded-lg bg-gray-50"
-          id="timerShifts"
-          role="tabpanel"
-        >
-          <div class="relative overflow-x-auto">
-            <table class="w-full text-sm text-left text-blue-500">
-              <thead class="text-xs text-blue-500 uppercase bg-gray-50">
-                <tr>
-                  <th scope="col" class="px-3 py-3">Shift ID</th>
-                  <th scope="col" class="px-3 py-3">Shift Valves</th>
-                  <th scope="col" class="px-3 py-3">Active Days</th>
-                  <th scope="col" class="px-3 py-3">Shift Settings</th>
-                  <th scope="col" class="px-3 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for shift in system.system_shifts %} {% if shift.mode ==
-                "TIMER" %}
-                <tr class="bg-white border-b">
-                  <th
-                    scope="row"
-                    class="px-3 py-4 font-medium text-blue-500 whitespace-nowrap"
-                  >
-                    {{ shift.id }}
-                  </th>
-                  <td class="px-3 py-4">
-                    <div class="flex flex-row flex-wrap">
-                      {% for valve in system.system_valves %} {% if
-                      valve.shift_id == shift.id %}
-                      <div class="text-xs text-blue-500 mr-4">
-                        <img
-                          class="w-6 h-6 rounded-full inline-block mr-2"
-                          src="/static/images/valve.png"
-                          alt="valve image"
-                        />
-                        {{valve.valve_id}}
-                      </div>
-                      {% endif %} {% endfor %}
-                      <div>
-                        <a
-                          data-modal-target="add-timer-valve-modal-{{shift.id}}"
-                          data-modal-toggle="add-timer-valve-modal-{{shift.id}}"
-                          class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-                          ><svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            class="w-6 h-6"
-                          >
-                            <path
-                              fill-rule="evenodd"
-                              d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z"
-                              clip-rule="evenodd"
-                            />
-                          </svg>
-                        </a>
-                      </div>
-                    </div>
-                    <!-- Main add timer valve modal -->
-                    <div
-                      id="add-timer-valve-modal-{{shift.id}}"
-                      tabindex="-1"
-                      aria-hidden="true"
-                      class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                    >
-                      <div class="relative w-full h-full max-w-md md:h-auto">
-                        <!-- Modal content -->
-                        <div class="relative bg-white rounded-lg shadow">
-                          <button
-                            type="button"
-                            class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                            data-modal-hide="add-timer-valve-modal-{{shift.id}}"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              class="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                fill-rule="evenodd"
-                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                clip-rule="evenodd"
-                              ></path>
-                            </svg>
-                            <span class="sr-only">Close modal</span>
-                          </button>
-                          <div class="px-6 py-6 lg:px-8">
-                            <form class="space-y-6 overflow-y-scroll">
-                              <label for="shift-timer-valve-id"
-                                >Selected valve will be added to Shift ID:
-                                {{shift.id}}:</label
-                              >
-                              {% for valve in system.system_valves %} {% if
-                              valve.shift_id != shift.id %}
-                              <div
-                                class="flex items-center pl-4 border border-gray-200 rounded"
-                              >
-                                <input
-                                  type="radio"
-                                  value="{{valve.valve_id}}"
-                                  name="timer-valve"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  class="w-full py-4 ml-2 text-sm text-gray-900"
-                                  >{{valve.valve_id}}</label
-                                >
-                              </div>
-                              {% endif %} {% endfor %}
-                              <button
-                                type="button"
-                                data-modal-hide="add-timer-valve-modal-{{shift.id}}"
-                                onclick=timerValve("{{shift.id}}")
-                                class="w-full text-white bg-[#0b545c] hover:bg-emerald-600 focus:ring-4 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-                              >
-                                Add Valve
-                              </button>
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-3 py-4">
-                    {% for day in active_days %} {{day}} ; {% endfor %}
-                  </td>
-                  <td class="px-3 py-4">
-                    Starts at: {{shift.start}} / Stops at: {{shift.stop}}
-                  </td>
-                  <td class="px-3 py-4 flex">
-                    <a
-                      data-modal-target="{{shift.id}}-update-modal"
-                      data-modal-toggle="{{shift.id}}-update-modal"
-                      class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-                      ><svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        class="w-6 h-6"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                    </a>
-                    /
-                    <a
-                      data-modal-target="delete-{{shift.id}}-modal"
-                      data-modal-toggle="delete-{{shift.id}}-modal"
-                      class="font-medium text-red-600 hover:underline hover:cursor-pointer"
-                      ><svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        class="w-6 h-6"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                    </a>
-                  </td>
-                </tr>
-                <!--shift delete modal -->
-                <div
-                  id="delete-{{shift.id}}-modal"
-                  tabindex="-1"
-                  class="fixed top-0 left-0 right-0 z-50 hidden p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                >
-                  <div class="relative w-full h-full max-w-md md:h-auto">
-                    <div class="relative bg-white rounded-lg shadow">
-                      <button
-                        type="button"
-                        class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                        data-modal-hide="delete-{{shift.id}}-modal"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          class="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clip-rule="evenodd"
-                          ></path>
-                        </svg>
-                        <span class="sr-only">Close modal</span>
-                      </button>
-                      <div class="p-6 text-center">
-                        <svg
-                          aria-hidden="true"
-                          class="mx-auto mb-4 text-gray-400 w-14 h-14"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          ></path>
-                        </svg>
-                        <h3 class="mb-5 text-lg font-normal text-gray-500">
-                          Are you sure you want to delete shift {{shift.id}} ?
-                        </h3>
-                        <button
-                          data-modal-hide="delete-{{shift.id}}-modal"
-                          type="button"
-                          onclick=deleteShift("{{shift.id}}")
-                          class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2"
-                        >
-                          Yes, I'm sure
-                        </button>
-                        <button
-                          data-modal-hide="delete-{{shift.id}}-modal"
-                          type="button"
-                          class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
-                        >
-                          No, cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Main modal -->
-                <div
-                  id="{{shift.id}}-update-modal"
-                  tabindex="-1"
-                  aria-hidden="true"
-                  class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-                >
-                  <div class="relative w-full h-full max-w-md md:h-auto">
-                    <!-- Modal content -->
-                    <div class="relative bg-white rounded-lg shadow">
-                      <button
-                        type="button"
-                        class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                        data-modal-hide="{{shift.id}}-update-modal"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          class="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clip-rule="evenodd"
-                          ></path>
-                        </svg>
-                        <span class="sr-only">Close modal</span>
-                      </button>
-                      <div class="px-6 py-6 lg:px-8">
-                        <h3 class="mb-4 text-xl font-medium text-gray-900">
-                          Change shift settings
-                        </h3>
-                        <form class="space-y-6">
-                          <input
-                            type="hidden"
-                            name="mode"
-                            id="timer-mode"
-                            value="{{shift.mode}}"
-                          />
-                          <h3 class="mb-4 text-md text-gray-900">
-                            Select active days for shift:
-                          </h3>
-                          <ul
-                            class="w-48 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg"
-                          >
-                            <li
-                              class="w-full border-b border-gray-200 rounded-t-lg"
-                            >
-                              <div class="flex items-center pl-3">
-                                <input
-                                  id="Mon"
-                                  type="checkbox"
-                                  name="Mon"
-                                  value="True"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  for="Mon"
-                                  class="w-full py-3 ml-2 text-sm font-medium text-gray-900"
-                                  >Monday</label
-                                >
-                              </div>
-                            </li>
-                            <li
-                              class="w-full border-b border-gray-200 rounded-t-lg"
-                            >
-                              <div class="flex items-center pl-3">
-                                <input
-                                  id="Tue"
-                                  type="checkbox"
-                                  name="Tue"
-                                  value="True"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  for="Tue"
-                                  class="w-full py-3 ml-2 text-sm font-medium text-gray-900"
-                                  >Tuesday</label
-                                >
-                              </div>
-                            </li>
-                            <li
-                              class="w-full border-b border-gray-200 rounded-t-lg"
-                            >
-                              <div class="flex items-center pl-3">
-                                <input
-                                  id="Wed"
-                                  type="checkbox"
-                                  name="Wed"
-                                  value="True"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  for="Wed"
-                                  class="w-full py-3 ml-2 text-sm font-medium text-gray-900"
-                                  >Wednesday</label
-                                >
-                              </div>
-                            </li>
-                            <li
-                              class="w-full border-b border-gray-200 rounded-t-lg"
-                            >
-                              <div class="flex items-center pl-3">
-                                <input
-                                  id="Thu"
-                                  type="checkbox"
-                                  name="Thu"
-                                  value="True"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  for="Thu"
-                                  class="w-full py-3 ml-2 text-sm font-medium text-gray-900"
-                                  >Thursday</label
-                                >
-                              </div>
-                            </li>
-                            <li
-                              class="w-full border-b border-gray-200 rounded-t-lg"
-                            >
-                              <div class="flex items-center pl-3">
-                                <input
-                                  id="Fri"
-                                  type="checkbox"
-                                  name="Fri"
-                                  value="True"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  for="Fri"
-                                  class="w-full py-3 ml-2 text-sm font-medium text-gray-900"
-                                  >Friday</label
-                                >
-                              </div>
-                            </li>
-                            <li
-                              class="w-full border-b border-gray-200 rounded-t-lg"
-                            >
-                              <div class="flex items-center pl-3">
-                                <input
-                                  id="Sat"
-                                  type="checkbox"
-                                  name="Sat"
-                                  value="True"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  for="Sat"
-                                  class="w-full py-3 ml-2 text-sm font-medium text-gray-900"
-                                  >Saturday</label
-                                >
-                              </div>
-                            </li>
-                            <li
-                              class="w-full border-b border-gray-200 rounded-t-lg"
-                            >
-                              <div class="flex items-center pl-3">
-                                <input
-                                  id="Sun"
-                                  type="checkbox"
-                                  name="Sun"
-                                  value="True"
-                                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label
-                                  for="Sun"
-                                  class="w-full py-3 ml-2 text-sm font-medium text-gray-900"
-                                  >Sunday</label
-                                >
-                              </div>
-                            </li>
-                          </ul>
-                          <h3 class="mb-4 text-md text-gray-900">
-                            Start shift at:
-                          </h3>
-                          <div>
-                            <label
-                              for="start"
-                              class="block mb-2 text-sm font-medium text-gray-900"
-                              >Start</label
-                            >
-                            <input
-                              type="time"
-                              step="1"
-                              id="start"
-                              name="start"
-                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                            />
-                          </div>
-                          <h3 class="mb-4 text-md text-gray-900">
-                            Stop shift at:
-                          </h3>
-                          <div>
-                            <label
-                              for="stop"
-                              class="block mb-2 text-sm font-medium text-gray-900"
-                              >stop</label
-                            >
-                            <input
-                              type="time"
-                              step="1"
-                              id="stop"
-                              name="stop"
-                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-                            data-modal-hide="{{shift.id}}-update-modal"
-                            onclick=timerShiftUpdate("{{shift.id}}")
-                          >
-                            Change
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {% endif %} {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <div>
-            <a
-              data-modal-target="add-timer-shift-modal"
-              data-modal-toggle="add-timer-shift-modal"
-              class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
-              ><svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="w-6 h-6"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </a>
-          </div>
-          <!-- add timer shift modal -->
-          <div
-            id="add-timer-shift-modal"
-            tabindex="-1"
-            class="fixed top-0 left-0 right-0 z-50 hidden p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
-          >
-            <div class="relative w-full h-full max-w-md md:h-auto">
-              <div class="relative bg-white rounded-lg shadow">
-                <button
-                  type="button"
-                  class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-                  data-modal-hide="add-timer-shift-modal"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    ></path>
-                  </svg>
-                  <span class="sr-only">Close modal</span>
-                </button>
-                <div class="p-6 text-center">
-                  <svg
-                    aria-hidden="true"
-                    class="mx-auto mb-4 text-gray-400 w-14 h-14"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
-                  <h3 class="mb-5 text-lg font-normal text-gray-500">
-                    Are you sure you want to create new shift ?
-                  </h3>
-                  <form
-                    id="addTimerShiftForm"
-                    class="space-y-6"
-                    action="/base/timerShift"
-                  >
-                    <input
-                      type="hidden"
-                      name="system_id"
-                      value="{{system.id}}"
-                    />
-                    <button
-                      data-modal-hide="add-timer-shift-modal"
-                      type="submit"
-                      class="text-white bg-[#0b545c] hover:bg-emerald-600 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2"
-                    >
-                      Yes, I'm sure
-                    </button>
-                    <button
-                      data-modal-hide="add-timer-shift-modal"
-                      type="button"
-                      class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
-                    >
-                      No, cancel
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      Shifts
+     
+    </div>
+    <div
+      class="hidden p-4 rounded-lg bg-gray-50"
+      id="schedule"
+      role="tabpanel"
+      aria-labelledby="schedule-tab"
+    >
+      
+      Schedules
     </div>
     <div
       class="hidden p-4 rounded-lg bg-gray-50"
