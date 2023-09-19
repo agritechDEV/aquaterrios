@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 
 from db.database import get_db
-from schema.devices import AddFlowData, AddSensorData, GetFlowData, SensorData, LogCreate, Logs, UpdateValveStatus
+from schema.devices import AddFlowData, AddSensorData, GetFlowData, SensorData, LogCreate, Logs, UpdateValveStatus, CurrentTime
 from crud import devices
 
 
@@ -156,6 +157,15 @@ def get_system_logs(system_id: int, db: Session = Depends(get_db)):
 """ API routes for getting setting """
 
 
+@api_router.get("/system_shifts/{system_id}")
+def get_systems_shifts(system_id: int, db: Session = Depends(get_db)):
+    shifts = devices.get_system_shifts(db=db, system_id=system_id)
+    system_shifts = []
+    for shift in shifts:
+        system_shifts.append({"shift ID": shift.id, "shift mode": shift.mode})
+    return system_shifts
+
+
 @api_router.get("/shift_setting/{shift_id}")
 def get_shift_setting(shift_id: int, db: Session = Depends(get_db)):
     shift = devices.get_shift(db=db, shift_id=shift_id)
@@ -214,3 +224,11 @@ def get_shift_setting(shift_id: int, db: Session = Depends(get_db)):
             )
 
     return shift_api
+
+
+""" Get current time """
+
+
+@api_router.get("/timestamp", response_model=CurrentTime)
+def return_current_time():
+    return datetime.now().timestamp()

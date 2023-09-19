@@ -189,6 +189,10 @@ def get_shift(db: Session, shift_id: int):
     return db.query(models.Shift).filter(models.Shift.id == shift_id).first()
 
 
+def get_system_shifts(db: Session, system_id: int):
+    return db.query(models.Shift).filter(models.Shift.system_id == system_id).all()
+
+
 def get_sensor_shifts(db: Session, system_id: int):
     return db.query(models.Shift).filter(models.Shift.system_id == system_id).filter(models.Shift.mode == "SENSOR").all()
 

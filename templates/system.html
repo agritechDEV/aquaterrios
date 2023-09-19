@@ -728,7 +728,7 @@ block content %}
               <tbody>
                 
                 {% for sensor in system.system_sensors %}
-                
+              
                 <tr class="bg-white border-b">
                   <th
                     scope="row"
@@ -749,11 +749,9 @@ block content %}
                     </span>
                     {% endfor %}
                   </td> 
-                  
-                  <td class="px-3 py-4">
-                    {% for controler in section.section_sensors %}
-                    {% if sensor.sensor_id == controler.sensor_id %}
-                  # {{controler.section_id}} </br> {% endif %} {% endfor %} </td>
+                
+                  <td class="px-3 py-4"> {% for controler in sensor_controlers %} 
+                  # {{controler.section_id}} </br>   {% endfor %} </td> 
                   <td class="px-3 py-4">
                     {{sensor.updated_at.strftime("%d-%m-%Y, %H:%M")}}
                   </td>
@@ -922,7 +920,47 @@ block content %}
       role="tabpanel"
       aria-labelledby="shifts-tab"
     >
+    <p class="mb-2 text-blue-500 uppercase font-medium text-lg">
       Shifts
+    </p>
+   
+    <div class="relative overflow-x-auto">
+      {% for shift in system.system_shifts %}
+      <div class="grid grid-cols-2 ">
+      <div class="place-content-start mb-2 text-blue-500 font-medium text-md">
+        Shifts {{ shift.id }}
+      </div>
+      <div class="place-content-end mb-2 text-blue-500 font-medium text-md">
+        switch
+      </div> </div>
+      <table class="w-full text-sm text-left text-blue-500">
+        <thead class="text-xs text-blue-500 uppercase bg-gray-50">
+          <tr>
+            <th scope="col" class="px-3 py-3">Valves</th>
+            <th scope="col" class="px-3 py-3">Sensors</th>
+            <th scope="col" class="px-3 py-3">Settings</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr class="bg-white border-b">
+            <th
+              scope="row"
+              class="px-3 py-4 font-medium text-blue-500 whitespace-nowrap"
+            >
+             drugo
+            </th>
+            <td class="px-3 py-4">
+              
+              trece
+            </td> 
+          
+            <td class="px-3 py-4"> 
+             cetvrto</td> 
+
+          </tbody>
+          </table>
+          {% endfor %}
      
     </div>
     <div

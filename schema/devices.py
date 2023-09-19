@@ -259,3 +259,13 @@ class Logs(LogCreate):
 
 class UpdateLog(BaseModel):
     disable: bool = True
+
+
+class CurrentTime(BaseModel):
+    current_time: datetime = datetime.now()
+
+    class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.timestamp(),
+        }
