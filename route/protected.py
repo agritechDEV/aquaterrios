@@ -245,24 +245,24 @@ def create_new_timer_controler(controler: TimerControl, db: Session = Depends(ge
         for v in [{"starts": t_ctrl.starts, "stops": t_ctrl.stops}]:
             if v not in t_controlers.get(t_ctrl.day, []):
                 t_controlers.setdefault(t_ctrl.day, []).append(v)
-    check_timer_controlor = {controler.day: {
-        "starts": controler.starts, "stops": controler.stops}}
-    value = list(check_timer_controlor.values())
-    try:
-        if not shift.mode == "TIMER":
-            return {"detail": "Can't create controler on SENSOR shift"}
-        elif controler.starts >= controler.stops:
-            return {"detail": "Start values must be less than stop value."}
-        elif value[0] in t_controlers[controler.day]:
-            return {"detail": "You have already added those settings."}
-        else:
+    check_timer_controlor = {controler.day: [{
+        "starts": controler.starts, "stops": controler.stops}]}
+    # if not shift.mode == "TIMER":
+    #     return {"detail": "Can't create controler on SENSOR shift"}
+    if controler.starts >= controler.stops:
+        return {"detail": "Start values must be less than stop value."}
+    if all(t_controlers.get(key, None) == val for key, val
+           in check_timer_controlor.items()):
+        return {"detail": "You have already added those settings."}
+    else:
+        try:
             devices.add_new_timer_controler(db=db, tcontroler=controler)
             return {"detail": "New section was successfully added to shift"}
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Something went wrong with connection to database"
-        )
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Something went wrong with connection to database"
+            )
 
 # Create user alert
 
@@ -602,15 +602,16 @@ def change_timer_controler_settings(controler_id: int, controler_to_update: Time
         for v in [{"starts": t_ctrl.starts, "stops": t_ctrl.stops}]:
             if v not in t_controlers.get(t_ctrl.day, []):
                 t_controlers.setdefault(t_ctrl.day, []).append(v)
-    check_timer_controlor = {controler_to_update.day: {
-        "starts": controler_to_update.starts, "stops": controler_to_update.stops}}
-    value = list(check_timer_controlor.values())
+    check_timer_controlor = {controler_to_update.day: [{
+        "starts": controler_to_update.starts, "stops": controler_to_update.stops}]}
+    # value = list(check_timer_controlor.values())
 
-    if not shift.mode == "TIMER":
-        return {"detail": "Can't create controler on SENSOR shift"}
-    elif controler_to_update.starts >= controler_to_update.stops:
+    # if not shift.mode == "TIMER":
+    #     return {"detail": "Can't create controler on SENSOR shift"}
+    if controler_to_update.starts >= controler_to_update.stops:
         return {"detail": "Start values must be less than stop value."}
-    elif value[0] in t_controlers[controler_to_update.day]:
+    if all(t_controlers.get(key, None) == val for key, val
+           in check_timer_controlor.items()):
         return {"detail": "You have already added those settings."}
     else:
         try:

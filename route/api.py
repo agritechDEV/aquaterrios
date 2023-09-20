@@ -174,54 +174,55 @@ def get_shift_setting(shift_id: int, db: Session = Depends(get_db)):
     shift_sections = devices.get_shift_sections(db=db, shift_id=shift_id)
 
     shift_api = {"ShiftID": shift.id, "Shift Mode": shift.mode}
-    if shift.mode == "SENSOR":
-        section_data = shift_api["sensor_selections"] = []
+    # if shift.mode == "SENSOR":
+    section_data = shift_api["sensor_selections"] = []
 
-        for section in shift_sections:
-            sensor_settings = []
-            controlers = devices.get_sensor_controlers(
-                db=db, section_id=section.id)
-            section_data.append(
-                {
-                    "sectionID": section.id,
-                    "Valve": section.valve_id,
-                    "sensor_settings": sensor_settings})
+    for section in shift_sections:
+        sensor_settings = []
+        controlers = devices.get_sensor_controlers(
+            db=db, section_id=section.id)
+        section_data.append(
+            {
+                "sectionID": section.id,
+                "Valve": section.valve_id,
+                "mode": shift.sensors_settings,
+                "sensor_settings": sensor_settings})
 
-            for sensor in controlers:
-                if sensor.section_id == section.id:
-                    sensor_settings.append(
-                        {"sensor": sensor.sensor_id, "starts": sensor.starts_at, "stops": sensor.stops_at})
-    else:
-        timer_data = shift_api["timer_selections"] = []
-        for section in shift_sections:
-            timer_settings = []
-            controlers = devices.get_timer_controlers(db=db, shift_id=shift_id)
-            timer_data.append(
-                {
-                    "sectionID": section.id,
-                    "Valve": section.valve_id,
-                    "timer_settings": timer_settings
-                }
-            )
-            days = []
-            starts = []
-            stops = []
-            for timer in controlers:
-                if timer.shift_id == section.shift_id:
-                    if timer.day not in days:
-                        days.append(timer.day)
-                    if timer.starts not in starts:
-                        starts.append(timer.starts)
-                    if timer.stops not in stops:
-                        stops.append(timer.stops)
+        for sensor in controlers:
+            if sensor.section_id == section.id:
+                sensor_settings.append(
+                    {"sensor": sensor.sensor_id, "starts": sensor.starts_at, "stops": sensor.stops_at})
+    # else:
+    timer_data = shift_api["timer_selections"] = []
+    for section in shift_sections:
+        timer_settings = []
+        controlers = devices.get_timer_controlers(db=db, shift_id=shift_id)
+        timer_data.append(
+            {
+                "sectionID": section.id,
+                "Valve": section.valve_id,
+                "timer_settings": timer_settings
+            }
+        )
+        days = []
+        starts = []
+        stops = []
+        for timer in controlers:
+            if timer.shift_id == section.shift_id:
+                if timer.day not in days:
+                    days.append(timer.day)
+                if timer.starts not in starts:
+                    starts.append(timer.starts)
+                if timer.stops not in stops:
+                    stops.append(timer.stops)
 
-            timer_settings.append(
-                {
-                    "Days": days,
-                    "Starts": starts,
-                    "Stops": stops
-                }
-            )
+        timer_settings.append(
+            {
+                "Days": days,
+                "Starts": starts,
+                "Stops": stops
+            }
+        )
 
     return shift_api
 
