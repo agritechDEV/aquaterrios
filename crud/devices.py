@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from datetime import datetime, time
 import pandas as pd
 import plotly.express as px
 
@@ -273,6 +274,16 @@ def create_section(db: Session, section: devices.SectionCreate):
     return db_section
 
 
+def change_section(db: Session, section: devices.SectionUpdate, id: int):
+    section_query = db.query(models.Section).filter(
+        models.Section.id == id)
+    if not section_query.first():
+        return False
+    section_query.update(section.dict(), synchronize_session=False)
+    db.commit()
+    return True
+
+
 def delete_section(id: int, db: Session):
     existing_section = db.query(models.Section).filter(models.Section.id == id)
     if not existing_section.first():
@@ -318,29 +329,82 @@ def change_sensor_controler(db: Session, scontroler: devices.SensorControler, id
     return True
 
 
-def get_timer_controler(db: Session, id: int):
-    return db.query(models.TimerControler).filter(
-        models.TimerControler.id == id).first()
+def delete_sensor_controler(id: int, db: Session):
+    existing_controler = db.query(models.SensorControler).filter(
+        models.SensorControler.id == id)
+    if not existing_controler.first():
+        return False
+    existing_controler.delete(synchronize_session=False)
+    db.commit()
+    return True
 
 
-def get_timer_controlers(db: Session, shift_id: int):
-    return db.query(models.TimerControler).filter(models.TimerControler.shift_id == shift_id).all()
+def get_timer(db: Session, id: int):
+    return db.query(models.Timer).filter(
+        models.Timer.id == id).first()
 
 
-def add_new_timer_controler(db: Session, tcontroler: devices.TimerControl):
-    db_controler = models.TimerControler(**tcontroler.dict())
+def get_timers(db: Session, shift_id: int):
+    return db.query(models.Timer).filter(models.Timer.shift_id == shift_id).all()
+
+
+def get_all_timers(db: Session, skip: int = 0, limit: int = 50):
+    return db.query(models.Timer).offset(skip).limit(limit).all()
+
+
+def add_new_timer(db: Session, tcontroler: devices.TimerControl):
+    db_controler = models.Timer(**tcontroler.dict())
     db.add(db_controler)
     db.commit()
     db.refresh(db_controler)
     return db_controler
 
 
-def change_timer_controler(db: Session, tcontroler: devices.TimerControl, id: int):
-    controler_query = db.query(models.TimerControler).filter(
-        models.TimerControler.id == id)
+def parse_time(time_str):
+    return datetime.strptime(time_str, "%H:%M:%S").time()
+
+
+def do_timers_interfere(timer1, timer2):
+    days_of_week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    # Check if any of the days in timer1 overlap with timer2
+    for day in days_of_week:
+        if timer1[day] and timer2[day]:
+            start_time1 = parse_time(timer1["starts"])
+            stop_time1 = parse_time(timer1["stops"])
+            start_time2 = parse_time(timer2["starts"])
+            stop_time2 = parse_time(timer2["stops"])
+
+            # Check if the time ranges overlap (taking into account start time equals end time)
+            if (
+                (start_time1 < stop_time1 and start_time2 < stop_time2 and
+                 ((start_time1 <= start_time2 < stop_time1) or
+                  (start_time1 < stop_time2 <= stop_time1) or
+                  (start_time2 <= start_time1 < stop_time2) or
+                  (start_time2 < stop_time1 <= stop_time2))) or
+                (start_time1 == stop_time1 and start_time2 == stop_time2 and
+                 start_time1 == start_time2)
+            ):
+                return True
+            else:
+                return False
+
+
+def change_timer_settings(db: Session, tcontroler: devices.TimerControl, id: int):
+    controler_query = db.query(models.Timer).filter(
+        models.Timer.id == id)
     if not controler_query.first():
         return False
     controler_query.update(tcontroler.dict(), synchronize_session=False)
+    db.commit()
+    return True
+
+
+def delete_timer(id: int, db: Session):
+    existing_timer = db.query(models.Timer).filter(models.Timer.id == id)
+    if not existing_timer.first():
+        return False
+    existing_timer.delete(synchronize_session=False)
     db.commit()
     return True
 

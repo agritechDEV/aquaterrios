@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 
 from db.database import get_db
-from schema.devices import AddFlowData, AddSensorData, GetFlowData, SensorData, LogCreate, Logs, UpdateValveStatus, CurrentTime
+from schema.devices import AddFlowData, AddSensorData, GetFlowData, SensorData, LogCreate, Logs, UpdateValveStatus, CurrentTime, Shifts
 from crud import devices
 
 
@@ -15,13 +15,19 @@ api_router = APIRouter()
 
 @api_router.post("/flowdata")
 def flow_data(flow: AddFlowData, db: Session = Depends(get_db)):
+    pump_flow = devices.get_pump(db=db, pump_id=flow.pump_id)
+    if not pump_flow:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="There is no such pump. Please check device ID"
+        )
     try:
         db_flow = devices.create_flow_data(db=db, flow=flow)
-        db_pump = devices.get_pump(db=db, pump_id=db_flow.pump_id)
-        new_volume = db_pump.current - db_flow.flow_rate
+
+        new_volume = pump_flow.current - flow.flow_rate
         devices.update_pump_data(
             db=db, pump_id=db_flow.pump_id, current=new_volume)
-        devices.create_flow_image(db=db, pump_id=db_pump.pump_id)
+        devices.create_flow_image(db=db, pump_id=flow.pump_id)
         return {"detail": "Successfully updated pump volume"}
     except:
         return {"detail": "Couldn't find pump in database"}
@@ -29,6 +35,12 @@ def flow_data(flow: AddFlowData, db: Session = Depends(get_db)):
 
 @api_router.get("/flowdata/{pump_id}", response_model=List[GetFlowData])
 def all_flow_data(pump_id: str, db: Session = Depends(get_db)):
+    pump = devices.get_pump(db=db, pump_id=pump_id)
+    if not pump:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="There is no such pump. Please check device ID"
+        )
     try:
         db_data = devices.get_all_flow_data(db=db, pump_id=pump_id)
         if not db_data:
@@ -40,6 +52,12 @@ def all_flow_data(pump_id: str, db: Session = Depends(get_db)):
 
 @api_router.get("/lastflowdata/{pump_id}", response_model=GetFlowData)
 def last_flow_data(pump_id: str, db: Session = Depends(get_db)):
+    pump = devices.get_pump(db=db, pump_id=pump_id)
+    if not pump:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="There is no such pump. Please check device ID"
+        )
     try:
         last_data = devices.get_flow_data(db=db, pump_id=pump_id)
         if not last_data:
@@ -77,6 +95,12 @@ def sensor_data(sensor_data: AddSensorData, db: Session = Depends(get_db)):
 
 @api_router.get("/sensordata/{sensor_id}", response_model=List[SensorData])
 def all_sensor_data(sensor_id: str, db: Session = Depends(get_db)):
+    sensor = devices.get_sensor(db=db, sensor_id=sensor_id)
+    if not sensor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="There is no such sensor. Please check device ID"
+        )
     try:
         db_data = devices.get_all_sensor_data(db=db, sensor_id=sensor_id)
         if not db_data:
@@ -88,6 +112,12 @@ def all_sensor_data(sensor_id: str, db: Session = Depends(get_db)):
 
 @api_router.get("/lastsensordata/{sensor_id}", response_model=SensorData)
 def last_sensor_data(sensor_id: str, db: Session = Depends(get_db)):
+    sensor = devices.get_sensor(db=db, sensor_id=sensor_id)
+    if not sensor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="There is no such sensor. Please check device ID"
+        )
     try:
         last_data = devices.get_sensor_data(db=db, sensor_id=sensor_id)
         if not last_data:
@@ -97,11 +127,34 @@ def last_sensor_data(sensor_id: str, db: Session = Depends(get_db)):
         return {"detail": "There is problems with database"}
 
 
+@api_router.get("/sensor_settings/{system_id}")
+def sensor_settings(system_id: int, db: Session = Depends(get_db)):
+    system = devices.get_system(db=db, system_id=system_id)
+    if not system:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Please select active system ID"
+        )
+    system_sensors = devices.get_system_sensors(db=db, system_id=system_id)
+    sensors = []
+    for sensor in system_sensors:
+        sensors.append({"SensorID": sensor.sensor_id, "settings": [
+                       {"10 cm": sensor.set_lvl_1, "20 cm": sensor.set_lvl_2, "40 cm": sensor.set_lvl_3}]})
+
+    return sensors
+
+
 """ Valve routes """
 
 
 @api_router.get("/valvestatus/{system_id}")
 def get_valve_status(system_id: int, db: Session = Depends(get_db)):
+    system = devices.get_system(db=db, system_id=system_id)
+    if not system:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Please select active system ID"
+        )
     try:
         valves = devices.get_system_valves(db=db, system_id=system_id)
         valve_status = []
@@ -141,6 +194,12 @@ def create_log(log: LogCreate, id: str, db: Session = Depends(get_db)):
 
 @api_router.get("/systemlogs", response_model=List[List[Logs]])
 def get_system_logs(system_id: int, db: Session = Depends(get_db)):
+    system = devices.get_system(db=db, system_id=system_id)
+    if not system:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Please select active system ID"
+        )
 
     pumps = devices.get_system_pumps(db=db, system_id=system_id)
     valves = devices.get_system_valves(db=db, system_id=system_id)
@@ -157,74 +216,77 @@ def get_system_logs(system_id: int, db: Session = Depends(get_db)):
 """ API routes for getting setting """
 
 
-@api_router.get("/system_shifts/{system_id}")
+@api_router.get("/system_shifts/{system_id}", response_model=List[Shifts])
 def get_systems_shifts(system_id: int, db: Session = Depends(get_db)):
+    system = devices.get_system(db=db, system_id=system_id)
+    if not system:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Please select active system ID"
+        )
     shifts = devices.get_system_shifts(db=db, system_id=system_id)
-    system_shifts = []
-    for shift in shifts:
-        system_shifts.append({"shift ID": shift.id, "shift mode": shift.mode})
-    return system_shifts
+    return shifts
 
 
-@api_router.get("/shift_setting/{shift_id}")
-def get_shift_setting(shift_id: int, db: Session = Depends(get_db)):
-    shift = devices.get_shift(db=db, shift_id=shift_id)
-    if not shift:
-        return {"detail": "Couldn't find shift in database."}
-    shift_sections = devices.get_shift_sections(db=db, shift_id=shift_id)
+# @api_router.get("/shift_setting/{shift_id}")
+# def get_shift_setting(shift_id: int, db: Session = Depends(get_db)):
+#     shift = devices.get_shift(db=db, shift_id=shift_id)
+#     if not shift:
+#         return {"detail": "Couldn't find shift in database."}
+#     shift_sections = devices.get_shift_sections(db=db, shift_id=shift_id)
 
-    shift_api = {"ShiftID": shift.id, "Shift Mode": shift.mode}
-    # if shift.mode == "SENSOR":
-    section_data = shift_api["sensor_selections"] = []
+#     shift_api = {"ShiftID": shift.id, "Shift Mode": shift.mode}
+#     # if shift.mode == "SENSOR":
+#     section_data = shift_api["sensor_selections"] = []
 
-    for section in shift_sections:
-        sensor_settings = []
-        controlers = devices.get_sensor_controlers(
-            db=db, section_id=section.id)
-        section_data.append(
-            {
-                "sectionID": section.id,
-                "Valve": section.valve_id,
-                "mode": shift.sensors_settings,
-                "sensor_settings": sensor_settings})
+#     for section in shift_sections:
+#         sensor_settings = []
+#         controlers = devices.get_sensor_controlers(
+#             db=db, section_id=section.id)
+#         section_data.append(
+#             {
+#                 "sectionID": section.id,
+#                 "Valve": section.valve_id,
+#                 "mode": shift.sensors_settings,
+#                 "sensor_settings": sensor_settings})
 
-        for sensor in controlers:
-            if sensor.section_id == section.id:
-                sensor_settings.append(
-                    {"sensor": sensor.sensor_id, "starts": sensor.starts_at, "stops": sensor.stops_at})
-    # else:
-    timer_data = shift_api["timer_selections"] = []
-    for section in shift_sections:
-        timer_settings = []
-        controlers = devices.get_timer_controlers(db=db, shift_id=shift_id)
-        timer_data.append(
-            {
-                "sectionID": section.id,
-                "Valve": section.valve_id,
-                "timer_settings": timer_settings
-            }
-        )
-        days = []
-        starts = []
-        stops = []
-        for timer in controlers:
-            if timer.shift_id == section.shift_id:
-                if timer.day not in days:
-                    days.append(timer.day)
-                if timer.starts not in starts:
-                    starts.append(timer.starts)
-                if timer.stops not in stops:
-                    stops.append(timer.stops)
+#         for sensor in controlers:
+#             if sensor.section_id == section.id:
+#                 sensor_settings.append(
+#                     {"sensor": sensor.sensor_id, "starts": sensor.starts_at, "stops": sensor.stops_at})
+#     # else:
+#     timer_data = shift_api["timer_selections"] = []
+#     for section in shift_sections:
+#         timer_settings = []
+#         controlers = devices.get_timer_controlers(db=db, shift_id=shift_id)
+#         timer_data.append(
+#             {
+#                 "sectionID": section.id,
+#                 "Valve": section.valve_id,
+#                 "timer_settings": timer_settings
+#             }
+#         )
+#         days = []
+#         starts = []
+#         stops = []
+#         for timer in controlers:
+#             if timer.shift_id == section.shift_id:
+#                 if timer.day not in days:
+#                     days.append(timer.day)
+#                 if timer.starts not in starts:
+#                     starts.append(timer.starts)
+#                 if timer.stops not in stops:
+#                     stops.append(timer.stops)
 
-        timer_settings.append(
-            {
-                "Days": days,
-                "Starts": starts,
-                "Stops": stops
-            }
-        )
+#         timer_settings.append(
+#             {
+#                 "Days": days,
+#                 "Starts": starts,
+#                 "Stops": stops
+#             }
+#         )
 
-    return shift_api
+#     return shift_api
 
 
 """ Get current time """

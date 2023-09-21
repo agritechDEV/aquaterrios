@@ -55,7 +55,6 @@ class Pump(Base):
     system_id = Column(Integer, ForeignKey(
         "systems.id", ondelete="CASCADE"), nullable=False)
     capacity = Column(Float)
-    available = Column(Float)
     current = Column(Float)
     updated_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
@@ -87,9 +86,9 @@ class Sensor(Base):
     system_id = Column(Integer, ForeignKey(
         "systems.id", ondelete="CASCADE"), nullable=False)
     readings = Column(Float)
-    set_lvl_1 = Column(Boolean, nullable=False)
-    set_lvl_2 = Column(Boolean, nullable=False)
-    set_lvl_3 = Column(Boolean, nullable=False)
+    set_lvl_1 = Column(Boolean)
+    set_lvl_2 = Column(Boolean)
+    set_lvl_3 = Column(Boolean)
     updated_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
     created_at = Column(TIMESTAMP(timezone=True),
@@ -104,8 +103,6 @@ class Shift(Base):
     id = Column(Integer, primary_key=True)
     system_id = Column(Integer, ForeignKey(
         "systems.id", ondelete="CASCADE"), nullable=False)
-    mode = Column(String(25), nullable=False)
-    sensors_settings = Column(String(25))
     updated_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
     created_at = Column(TIMESTAMP(timezone=True),
@@ -113,6 +110,7 @@ class Shift(Base):
 
     shifts = relationship("System", back_populates="system_shifts")
     shifts_sections = relationship("Section", back_populates="shift_sections")
+    shift_timers = relationship("Timer", back_populates="timer")
 
 
 class Section(Base):
@@ -122,6 +120,9 @@ class Section(Base):
     shift_id = Column(Integer, ForeignKey(
         "shifts.id", ondelete="CASCADE"), nullable=False)
     valve_id = Column(String(25), unique=True)
+    sensors_settings = Column(String(25))
+    starts_at = Column(Float)
+    stops_at = Column(Float)
     updated_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
 
@@ -137,24 +138,36 @@ class SensorControler(Base):
     section_id = Column(Integer, ForeignKey(
         "sections.id", ondelete="CASCADE"), nullable=False)
     sensor_id = Column(String(25))
-    starts_at = Column(Float)
-    stops_at = Column(Float)
     updated_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
 
     section_sensor = relationship("Section", back_populates="section_sensors")
 
 
-class TimerControler(Base):
-    __tablename__ = "timer_controlers"
+class Timer(Base):
+    __tablename__ = "timers"
 
     id = Column(Integer, primary_key=True)
-    shift_id = Column(Integer)
-    day = Column(String(25))
+    shift_id = Column(Integer, ForeignKey(
+        "shifts.id", ondelete="CASCADE"), nullable=False)
+    Mon = Column(Boolean)
+    Tue = Column(Boolean)
+    Wed = Column(Boolean)
+    Thu = Column(Boolean)
+    Fri = Column(Boolean)
+    Sat = Column(Boolean)
+    Sun = Column(Boolean)
     starts = Column(Time)
     stops = Column(Time)
     updated_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
+
+    timer = relationship("Shift", back_populates="shift_timers")
+
+    def serialize(self):
+        return {"Mon": self.Mon, "Tue": self.Tue, "Wed": self.Wed, "Thu": self.Thu,
+                "Fri": self.Fri, "Sat": self.Sat, "Sun": self.Sun,
+                "starts": str(self.starts), "stops": str(self.stops)}
 
 
 class FlowData(Base):

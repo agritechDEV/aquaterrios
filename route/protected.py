@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import json
+import jsonify
 
 from db.database import get_db
 from crud.login import get_current_user
 from crud import users
 from crud import devices
 from schema.users import UserUpdate, AdminUserUpdate, UpdateNote, NoteCreate, LostPassword
-from schema.devices import SystemCreate, AddPump, AddValve, AddSensor, AddShift, SystemUpdate, UpdatePump, UpdateValve, SensorControler, TimerControl, UpdateSensor, UpdateShift, UpdateLog, SectionCreate
+from schema.devices import SystemCreate, AddPump, AddValve, AddSensor, AddShift, SystemUpdate, UpdatePump, UpdateValve, SensorControler, TimerControl, UpdateSensor, UpdateShift, UpdateLog, SectionCreate, SectionUpdate
 
 base_router = APIRouter()
 
@@ -129,7 +131,7 @@ def create_new_shift(shift: AddShift, db: Session = Depends(get_db), current_use
         )
     try:
         devices.create_shift(db=db, shift=shift)
-        return {"detail": "New timer shift was successfully added to system"}
+        return {"detail": "New shift was successfully added to system"}
     except:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -197,16 +199,18 @@ def create_new_sensor_controler(controler: SensorControler, db: Session = Depend
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to update database"
         )
+    available_sensors = []
+    for sensor in system.system_sensors:
+        available_sensors.append(sensor.sensor_id)
+
     sensors = []
-    for sensor in sensor_contolers:
-        sensors.append(sensor.sensor_id)
+    for new_sensor in sensor_contolers:
+        sensors.append(new_sensor.sensor_id)
     try:
-        if not shift.mode == "SENSOR":
-            return {"detail": "Can't create controler on TIMER shift"}
-        elif controler.stops_at <= controler.starts_at or controler.starts_at < 0 or controler.stops_at > 100:
-            return {"detail": "Start values must be less than 100, greater than 0 and start value must be lower than stop value."}
-        elif controler.sensor_id in sensors:
+        if controler.sensor_id in sensors:
             return {"detail": "You have already added this sensor to group."}
+        if controler.sensor_id not in available_sensors:
+            return {"detail": "There is no such sensor in system. Check device ID."}
         else:
             devices.add_new_sensor_controler(db=db, scontroler=controler)
             return {"detail": "New section was successfully added to shift"}
@@ -219,10 +223,10 @@ def create_new_sensor_controler(controler: SensorControler, db: Session = Depend
 # Create timer controler
 
 
-@base_router.post("/timerControler")
-def create_new_timer_controler(controler: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    timer_controlers = devices.get_timer_controlers(
-        db=db, shift_id=controler.shift_id)
+@base_router.post("/timer")
+def create_new_timer(controler: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    check_timers = []
+    timers = devices.get_timers(db=db, shift_id=controler.shift_id)
     shift = devices.get_shift(db=db, shift_id=controler.shift_id)
     if not shift:
         raise HTTPException(
@@ -240,24 +244,22 @@ def create_new_timer_controler(controler: TimerControl, db: Session = Depends(ge
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to update database"
         )
-    t_controlers = {}
-    for t_ctrl in timer_controlers:
-        for v in [{"starts": t_ctrl.starts, "stops": t_ctrl.stops}]:
-            if v not in t_controlers.get(t_ctrl.day, []):
-                t_controlers.setdefault(t_ctrl.day, []).append(v)
-    check_timer_controlor = {controler.day: [{
-        "starts": controler.starts, "stops": controler.stops}]}
-    # if not shift.mode == "TIMER":
-    #     return {"detail": "Can't create controler on SENSOR shift"}
+    for timer in timers:
+        timer_to_dict = timer.serialize()
+        check_timers.append(timer_to_dict)
+
     if controler.starts >= controler.stops:
         return {"detail": "Start values must be less than stop value."}
-    if all(t_controlers.get(key, None) == val for key, val
-           in check_timer_controlor.items()):
-        return {"detail": "You have already added those settings."}
+
     else:
         try:
-            devices.add_new_timer_controler(db=db, tcontroler=controler)
-            return {"detail": "New section was successfully added to shift"}
+            for timer in check_timers:
+                print("Checking available timers....")
+            if not devices.do_timers_interfere(timer1=timer, timer2=controler.serialize()):
+                devices.add_new_timer(db=db, tcontroler=controler)
+                return {"detail": "New section was successfully added to shift"}
+            else:
+                return {"detail": "Timers match each other."}
         except:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -481,27 +483,61 @@ def sensor_update(sensor_id: str, sensor_to_update: UpdateSensor, db: Session = 
 # Update shift
 
 
-@base_router.put("/shift/{shift_id}")
-def shift_update(shift_id: int, shift_to_update: UpdateShift, db: Session = Depends(get_db),
-                 current_user: str = Depends(get_current_user)):
+# @base_router.put("/shift/{shift_id}")
+# def shift_update(shift_id: int, shift_to_update: UpdateShift, db: Session = Depends(get_db),
+#                  current_user: str = Depends(get_current_user)):
 
-    existing_shift = devices.get_shift(db=db, shift_id=shift_id)
-    if not existing_shift:
+#     existing_shift = devices.get_shift(db=db, shift_id=shift_id)
+#     if not existing_shift:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="Could not found shift in database"
+#         )
+#     system = devices.get_system(db=db, system_id=existing_shift.system_id)
+#     if current_user.username != system.owner:
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="You are not authorized to update database"
+#         )
+#     try:
+#         devices.update_shift(
+#             db=db, shift=shift_to_update, shift_id=shift_id)
+
+#         return {"detail": "Successfully updated database"}
+#     except:
+#         raise HTTPException(
+#             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+#             detail="Something went wrong with connection to database"
+#         )
+
+
+# Update section
+
+
+@base_router.put("/section/{id}")
+def section_update(id: int, section_to_update: SectionUpdate, db: Session = Depends(get_db),
+                   current_user: str = Depends(get_current_user)):
+
+    section = devices.get_section(db=db, id=id)
+    if not section:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Could not found shift in database"
         )
-    system = devices.get_system(db=db, system_id=existing_shift.system_id)
+    shift = devices.get_shift(db=db, shift_id=section.shift_id)
+    system = devices.get_system(db=db, system_id=shift.system_id)
     if current_user.username != system.owner:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to update database"
         )
-    if shift_to_update.mode == "TIMER":
-        shift_to_update.sensors_settings = "N/A"
+    sensor_option = ["AVG", "ONE", "ALL"]
+    if section_to_update.stops_at <= section_to_update.starts_at or section_to_update.starts_at < 0 or section_to_update.stops_at > 100:
+        return {"detail": "Start values must be less than 100, greater than 0 and start value must be lower than stop value."}
+    if section_to_update.sensors_settings not in sensor_option:
+        return {"detail": "Select one of options: AVG/ONE/ALL."}
     try:
-        devices.update_shift(
-            db=db, shift=shift_to_update, shift_id=shift_id)
+        devices.change_section(db=db, section=section_to_update, id=id)
 
         return {"detail": "Successfully updated database"}
     except:
@@ -509,7 +545,6 @@ def shift_update(shift_id: int, shift_to_update: UpdateShift, db: Session = Depe
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Something went wrong with connection to database"
         )
-
 
 # Update sensor controler
 
@@ -542,24 +577,26 @@ def change_sensor_controler_settings(controler_id: int, controler_to_update: Sen
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to update database"
         )
+    available_sensors = []
+    for sensor in system.system_sensors:
+        available_sensors.append(sensor.sensor_id)
     sensors = []
-    for sensor in sensor_contolers:
-        sensors.append(sensor.sensor_id)
+    for new_sensor in sensor_contolers:
+        sensors.append(new_sensor.sensor_id)
 
-    if not shift.mode == "SENSOR":
-        return {"detail": "Can't create controler on TIMER shift"}
-    elif controler_to_update.section_id != section.id:
+    if controler_to_update.section_id != section.id:
         return {"detail": "Can't update unproper section ID."}
-    elif controler_to_update.stops_at <= controler_to_update.starts_at or controler_to_update.starts_at < 0 or controler_to_update.stops_at > 100:
-        return {"detail": "Start values must be less than 100, greater than 0 and start value must be lower than stop value."}
-    elif controler_to_update.sensor_id in sensors:
-        return {"detail": "You have already added this sensor to group."}
+    elif controler_to_update.sensor_id not in available_sensors:
+        return {"detail": "There is no such sensor in system. Please check device ID."}
     else:
         try:
-            devices.change_sensor_controler(
-                db=db, scontroler=controler_to_update, id=controler_id)
+            if controler_to_update.sensor_id in sensors:
+                return {"detail": "You have already added this sensor to group."}
+            else:
+                devices.change_sensor_controler(
+                    db=db, scontroler=controler_to_update, id=controler_id)
 
-            return {"detail": "Successfully updated database"}
+                return {"detail": "Successfully updated database"}
         except:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -570,16 +607,21 @@ def change_sensor_controler_settings(controler_id: int, controler_to_update: Sen
 # Update timer shift controler
 
 
-@base_router.patch("/timerControler/{controler_id}")
-def change_timer_controler_settings(controler_id: int, controler_to_update: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    controler = devices.get_timer_controler(db=db, id=controler_id)
-    timer_controlers = devices.get_timer_controlers(
-        db=db, shift_id=controler.shift_id)
+@base_router.patch("/timer/{id}")
+def change_timer_controler_settings(id: int, controler_to_update: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    controler = devices.get_timer(db=db, id=id)
     if not controler:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Could not found controler in database"
         )
+    if controler.shift_id != controler_to_update.shift_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Could not found shift in database"
+        )
+    check_timers = []
+    timers = devices.get_timers(db=db, shift_id=controler_to_update.shift_id)
     shift = devices.get_shift(db=db, shift_id=controler_to_update.shift_id)
     if not shift:
         raise HTTPException(
@@ -597,28 +639,24 @@ def change_timer_controler_settings(controler_id: int, controler_to_update: Time
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to update database"
         )
-    t_controlers = {}
-    for t_ctrl in timer_controlers:
-        for v in [{"starts": t_ctrl.starts, "stops": t_ctrl.stops}]:
-            if v not in t_controlers.get(t_ctrl.day, []):
-                t_controlers.setdefault(t_ctrl.day, []).append(v)
-    check_timer_controlor = {controler_to_update.day: [{
-        "starts": controler_to_update.starts, "stops": controler_to_update.stops}]}
-    # value = list(check_timer_controlor.values())
 
-    # if not shift.mode == "TIMER":
-    #     return {"detail": "Can't create controler on SENSOR shift"}
+    for timer in timers:
+        timer_to_dict = timer.serialize()
+        check_timers.append(timer_to_dict)
+
     if controler_to_update.starts >= controler_to_update.stops:
         return {"detail": "Start values must be less than stop value."}
-    if all(t_controlers.get(key, None) == val for key, val
-           in check_timer_controlor.items()):
-        return {"detail": "You have already added those settings."}
+
     else:
         try:
-            devices.change_timer_controler(
-                db=db, tcontroler=controler_to_update, id=controler_id)
-
-            return {"detail": "Successfully updated database"}
+            for timer in check_timers:
+                print("Checking available timers....")
+            if not devices.do_timers_interfere(timer1=timer, timer2=controler_to_update.serialize()):
+                devices.change_timer_settings(
+                    db=db, tcontroler=controler_to_update, id=id)
+                return {"detail": "Successfully updated database"}
+            else:
+                return {"detail": "Timers match each other."}
         except:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -849,6 +887,66 @@ def delete_shift_section(id: int, db: Session = Depends(get_db), current_user: s
         )
     try:
         devices.delete_section(db=db, id=id)
+        return {"detail": "Successfully updated database"}
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Something went wrong with connection to database"
+        )
+
+# Delete sensor controler route
+
+
+@base_router.delete("/sensorControl/{id}")
+def delete_sensor_controler(id: int, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    controler_to_delete = devices.get_sensor_controler(db=db, id=id)
+    if not controler_to_delete:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"There is no controler with ID: {id}."
+        )
+
+    section = devices.get_section(db=db, id=controler_to_delete.section_id)
+    shift = devices.get_shift(db=db, shift_id=section.shift_id)
+    system = devices.get_system(db=db, system_id=shift.system_id)
+
+    if not current_user.admin and current_user.username != system.owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to update database"
+        )
+    try:
+        devices.delete_sensor_controler(db=db, id=id)
+        return {"detail": "Successfully updated database"}
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Something went wrong with connection to database"
+        )
+
+
+# Delete timer route
+
+
+@base_router.delete("/timer/{id}")
+def delete_timer(id: int, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    timer_to_delete = devices.get_timer(db=db, id=id)
+    if not timer_to_delete:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"There is no timer with ID: {id}."
+        )
+
+    shift = devices.get_shift(db=db, shift_id=timer_to_delete.shift_id)
+    system = devices.get_system(db=db, system_id=shift.system_id)
+
+    if not current_user.admin and current_user.username != system.owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to update database"
+        )
+    try:
+        devices.delete_timer(db=db, id=id)
         return {"detail": "Successfully updated database"}
     except:
         raise HTTPException(

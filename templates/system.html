@@ -960,7 +960,7 @@ block content %}
             </div>
             </th>
             
-            <td class="px-3 py-4">
+            <td class="px-3 py-4 flex">
               {% for sensor in sensor_controlers %} {% if sensor.section_id == section.id %}
               <div class="text-xs text-blue-500 mr-4 flex">
                 <svg
@@ -1024,7 +1024,7 @@ block content %}
               <a
                 data-modal-target="add-valve-modal-{{shift.id}}"
                 data-modal-toggle="add-valve-modal-{{shift.id}}"
-                class="font-medium text-blue-600 hover:underline hover:cursor-pointer"
+                class="font-medium text-blue-600 hover:underline hover:cursor-pointer inline-flex"
                 ><svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -1036,8 +1036,8 @@ block content %}
                     d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z"
                     clip-rule="evenodd"
                   />
-                </svg>
-              </a>Add Valve
+                </svg><span class="text-sm ml-1">Add Valve</span>
+              </a>
             </div>
           <div class="basis-1/12 px-3 py-4 font-medium text-sm text-blue-500">Remove shift</div></div>
           {% endfor %}

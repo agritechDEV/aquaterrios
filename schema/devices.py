@@ -7,7 +7,6 @@ from typing import Optional, Union, List
 class Flow(BaseModel):
     pump_id: str
     capacity: Union[float, None] = None
-    available: Union[float, None] = None
     current: Union[float, None] = None
 
 
@@ -32,11 +31,12 @@ class Pump(Flow):
 class AddFlowData(BaseModel):
     pump_id: str
     flow_rate: float
+    date: datetime = datetime.now()
 
 
 class GetFlowData(BaseModel):
-    flow_rate: float
-    date: datetime
+    flow_rate: Optional[float]
+    date: Optional[datetime]
 
     class Config:
         orm_mode = True
@@ -130,35 +130,42 @@ class SensorData(BaseModel):
         }
 
 
-class SectionCreate(BaseModel):
-    shift_id: int
-    valve_id: str
+class SensorControler(BaseModel):
+    section_id: int
+    sensor_id: Optional[str]
     updated_at: datetime = datetime.now()
 
 
-class Section(SectionCreate):
-    id: int
-    updated_at: datetime
+class SControl(BaseModel):
+    sensor_id: Union[str, None] = None
 
     class Config:
         orm_mode = True
 
 
-class SensorControler(BaseModel):
-    section_id: int
-    sensor_id: Optional[str]
+class SectionCreate(BaseModel):
+    shift_id: int
+    valve_id: str
+    sensors_settings: Optional[str]
     starts_at: Optional[float]
     stops_at: Optional[float]
     updated_at: datetime = datetime.now()
 
 
-class SControl(BaseModel):
+class SectionUpdate(BaseModel):
+    sensors_settings: Optional[str]
+    starts_at: Optional[float]
+    stops_at: Optional[float]
+    updated_at: datetime = datetime.now()
+
+
+class Section(BaseModel):
     id: int
-    section_id: int
-    sensor_id: Union[str, None] = None
-    starts_at: Union[float, None] = None
-    stops_at: Union[float, None] = None
-    updated_at: datetime
+    valve_id: str
+    sensors_settings: Optional[str]
+    starts_at: Optional[float]
+    stops_at: Optional[float]
+    section_sensors: List[SControl] = []
 
     class Config:
         orm_mode = True
@@ -166,47 +173,53 @@ class SControl(BaseModel):
 
 class TimerControl(BaseModel):
     shift_id: int
-    day: Optional[str]
+    Mon: Optional[bool]
+    Tue: Optional[bool]
+    Wed: Optional[bool]
+    Thu: Optional[bool]
+    Fri: Optional[bool]
+    Sat: Optional[bool]
+    Sun: Optional[bool]
     starts: Optional[time]
     stops: Optional[time]
     updated_at: datetime = datetime.now()
 
+    def serialize(self):
+        return {"Mon": self.Mon, "Tue": self.Tue, "Wed": self.Wed, "Thu": self.Thu,
+                "Fri": self.Fri, "Sat": self.Sat, "Sun": self.Sun,
+                "starts": str(self.starts), "stops": str(self.stops)}
+
 
 class TControl(BaseModel):
     id: int
-    shift_id: Union[int, None] = None
-    day: Union[str, None] = None
+    Mon: Union[bool, None] = None
+    Tue: Union[bool, None] = None
+    Wed: Union[bool, None] = None
+    Thu: Union[bool, None] = None
+    Fri: Union[bool, None] = None
+    Sat: Union[bool, None] = None
+    Sun: Union[bool, None] = None
     starts: Union[time, None] = None
     stops: Union[time, None] = None
-    updated_at: datetime
 
     class Config:
         orm_mode = True
 
 
-class ShiftBase(BaseModel):
-    mode: Optional[str] = "TIMER"
-    sensors_settings: Optional[str] = "N/A"
-
-
-class AddShift(ShiftBase):
+class AddShift(BaseModel):
     system_id: int
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
 
 
 class UpdateShift(BaseModel):
-    mode: Optional[str]
-    sensors_settings: Optional[str]
     updated_at: datetime = datetime.now()
 
 
-class Shifts(ShiftBase):
+class Shifts(BaseModel):
     id: int
-    system_id: int
-    created_at: datetime
-    updated_at: datetime
     shifts_sections: List[Section] = []
+    shift_timers: List[TControl] = []
 
     class Config:
         orm_mode = True
