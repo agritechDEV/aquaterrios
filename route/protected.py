@@ -226,8 +226,9 @@ def create_new_sensor_controler(controler: SensorControler, db: Session = Depend
 @base_router.post("/timer")
 def create_new_timer(controler: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     check_timers = []
-    timers = devices.get_timers(db=db, shift_id=controler.shift_id)
+    timers = []
     shift = devices.get_shift(db=db, shift_id=controler.shift_id)
+
     if not shift:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -244,6 +245,14 @@ def create_new_timer(controler: TimerControl, db: Session = Depends(get_db), cur
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to update database"
         )
+    system_shifts = []
+    for entry in system.system_shifts:
+        system_shifts.append(entry)
+    for data in system_shifts:
+        for timer in data.shift_timers:
+            print(timer.serialize())
+            timers.append(timer)
+
     for timer in timers:
         timer_to_dict = timer.serialize()
         check_timers.append(timer_to_dict)
@@ -255,11 +264,10 @@ def create_new_timer(controler: TimerControl, db: Session = Depends(get_db), cur
         try:
             for timer in check_timers:
                 print("Checking available timers....")
-            if not devices.do_timers_interfere(timer1=timer, timer2=controler.serialize()):
-                devices.add_new_timer(db=db, tcontroler=controler)
-                return {"detail": "New section was successfully added to shift"}
-            else:
-                return {"detail": "Timers match each other."}
+                if devices.do_timers_interfere(timer1=timer, timer2=controler.serialize()):
+                    return {"detail": "Timers match each other."}
+            devices.add_new_timer(db=db, tcontroler=controler)
+            return {"detail": "New section was successfully added to shift"}
         except:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -609,6 +617,7 @@ def change_sensor_controler_settings(controler_id: int, controler_to_update: Sen
 
 @base_router.patch("/timer/{id}")
 def change_timer_controler_settings(id: int, controler_to_update: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+
     controler = devices.get_timer(db=db, id=id)
     if not controler:
         raise HTTPException(
@@ -621,7 +630,7 @@ def change_timer_controler_settings(id: int, controler_to_update: TimerControl, 
             detail="Could not found shift in database"
         )
     check_timers = []
-    timers = devices.get_timers(db=db, shift_id=controler_to_update.shift_id)
+    timers = []
     shift = devices.get_shift(db=db, shift_id=controler_to_update.shift_id)
     if not shift:
         raise HTTPException(
@@ -640,6 +649,14 @@ def change_timer_controler_settings(id: int, controler_to_update: TimerControl, 
             detail="You are not authorized to update database"
         )
 
+    system_shifts = []
+    for entry in system.system_shifts:
+        system_shifts.append(entry)
+    for data in system_shifts:
+        for timer in data.shift_timers:
+            print(timer.serialize())
+            timers.append(timer)
+
     for timer in timers:
         timer_to_dict = timer.serialize()
         check_timers.append(timer_to_dict)
@@ -651,12 +668,11 @@ def change_timer_controler_settings(id: int, controler_to_update: TimerControl, 
         try:
             for timer in check_timers:
                 print("Checking available timers....")
-            if not devices.do_timers_interfere(timer1=timer, timer2=controler_to_update.serialize()):
-                devices.change_timer_settings(
-                    db=db, tcontroler=controler_to_update, id=id)
-                return {"detail": "Successfully updated database"}
-            else:
-                return {"detail": "Timers match each other."}
+                if devices.do_timers_interfere(timer1=timer, timer2=controler_to_update.serialize()):
+                    return {"detail": "Timers match each other."}
+            devices.change_timer_settings(
+                db=db, tcontroler=controler_to_update, id=id)
+            return {"detail": "Successfully updated database"}
         except:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

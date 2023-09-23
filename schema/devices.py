@@ -146,9 +146,6 @@ class SControl(BaseModel):
 class SectionCreate(BaseModel):
     shift_id: int
     valve_id: str
-    sensors_settings: Optional[str]
-    starts_at: Optional[float]
-    stops_at: Optional[float]
     updated_at: datetime = datetime.now()
 
 
@@ -231,6 +228,7 @@ class SystemBase(BaseModel):
 
 
 class SystemCreate(SystemBase):
+    systemID: str
     owner: str
 
 
@@ -240,8 +238,19 @@ class SystemUpdate(BaseModel):
     updated_at: datetime = datetime.now()
 
 
+class SystemID(BaseModel):
+    id: int
+    name: str
+    location: str
+    owner: str
+
+    class Config:
+        orm_mode = True
+
+
 class System(SystemBase):
     id: int
+    systemID: str
     owner: str
     created_at: datetime
     updated_at: datetime

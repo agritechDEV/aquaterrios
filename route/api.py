@@ -4,7 +4,7 @@ from typing import List
 from datetime import datetime
 
 from db.database import get_db
-from schema.devices import AddFlowData, AddSensorData, GetFlowData, SensorData, LogCreate, Logs, UpdateValveStatus, CurrentTime, Shifts
+from schema.devices import AddFlowData, AddSensorData, GetFlowData, SensorData, LogCreate, Logs, UpdateValveStatus, CurrentTime, Shifts, SystemID
 from crud import devices
 
 
@@ -294,4 +294,19 @@ def get_systems_shifts(system_id: int, db: Session = Depends(get_db)):
 
 @api_router.get("/timestamp", response_model=CurrentTime)
 def return_current_time():
-    return datetime.now().timestamp()
+    current_timestamp = datetime.now().timestamp()
+    return {"current_time": current_timestamp}
+
+
+""" Get string systemID """
+
+
+@api_router.get("/system_str_ID/{systemID}", response_model=SystemID)
+def get_systemID_as_str(systemID: str, db: Session = Depends(get_db)):
+    system = devices.get_systemID(db=db, systemID=systemID)
+    if not system:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Coldn't find system. Please select active systemID"
+        )
+    return system

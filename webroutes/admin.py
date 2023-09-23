@@ -153,8 +153,6 @@ def system(id: int, request: Request, db: Session = Depends(get_db), current_use
     green_sensors = []
     blue_sensors = []
     sensor_data = []
-    sensor_controlers = []
-    timer_controlers = []
 
     if not current_user:
         return {"detail": "You are not logged in"}
@@ -177,18 +175,8 @@ def system(id: int, request: Request, db: Session = Depends(get_db), current_use
     for sensor in system.system_sensors:
         data = devices.get_sensor_data(db=db, sensor_id=sensor.sensor_id)
         sensor_data.append(data)
-    for shift in system.system_shifts:
-        shift_sections = devices.get_shift_sections(db=db, shift_id=shift.id)
-        t_controlers = devices.get_timer_controlers(db=db, shift_id=shift.id)
-        for controler in t_controlers:
-            timer_controlers.append(controler)
-        for section in shift_sections:
-            s_controlers = devices.get_sensor_controlers(
-                db=db, section_id=section.id)
-            for controler in s_controlers:
-                sensor_controlers.append(controler)
 
     return templates.TemplateResponse("system.html", {"request": request, "system": system, "pump_logs": pump_logs, "valve_logs": valve_logs,
                                                       "sensor_logs": sensor_logs, "current_user": current_user, "alerts": alerts, "red_sensors": red_sensors,
                                                       "green_sensors": green_sensors, "blue_sensors": blue_sensors, "sensor_data": sensor_data,
-                                                      "users": users, "sensor_controlers": sensor_controlers, "timer_controlers": timer_controlers})
+                                                      "users": users})

@@ -18,6 +18,10 @@ def get_system(db: Session, system_id: int):
     return db.query(models.System).filter(models.System.id == system_id).first()
 
 
+def get_systemID(db: Session, systemID: str):
+    return db.query(models.System).filter(models.System.systemID == systemID).first()
+
+
 def create_system(db: Session, system: devices.SystemCreate):
     db_system = models.System(**system.dict())
     db.add(db_system)
@@ -192,14 +196,6 @@ def get_shift(db: Session, shift_id: int):
 
 def get_system_shifts(db: Session, system_id: int):
     return db.query(models.Shift).filter(models.Shift.system_id == system_id).all()
-
-
-def get_sensor_shifts(db: Session, system_id: int):
-    return db.query(models.Shift).filter(models.Shift.system_id == system_id).filter(models.Shift.mode == "SENSOR").all()
-
-
-def get_timer_shifts(db: Session, system_id: int):
-    return db.query(models.Shift).filter(models.Shift.system_id == system_id).filter(models.Shift.mode == "TIMER").all()
 
 
 def create_shift(db: Session, shift: devices.AddShift):

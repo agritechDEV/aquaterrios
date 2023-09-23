@@ -34,6 +34,7 @@ class System(Base):
     id = Column(Integer, primary_key=True, index=True)
     owner = Column(String(50), ForeignKey(
         "users.username", ondelete="CASCADE"), nullable=False)
+    systemID = Column(String(25), nullable=False, unique=True)
     name = Column(String(100), nullable=False)
     location = Column(String(100), nullable=False)
     updated_at = Column(TIMESTAMP(timezone=True),
