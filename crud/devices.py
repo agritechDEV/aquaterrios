@@ -14,7 +14,7 @@ def get_systems(db: Session, skip: int = 0, limit: int = 50):
     return db.query(models.System).offset(skip).limit(limit).all()
 
 
-def get_system(db: Session, system_id: int):
+def get_system(db: Session, system_id:  int):
     return db.query(models.System).filter(models.System.id == system_id).first()
 
 
@@ -140,6 +140,13 @@ def delete_valve(valve_id: str, db: Session):
         return False
     existing_valve.delete(synchronize_session=False)
     db.commit()
+    print(f"Valve {valve_id} was deleted.")
+    existing_section = db.query(models.Section).filter(
+        models.Section.valve_id == valve_id)
+    while existing_section.first():
+        existing_section.delete(synchronize_session=False)
+        db.commit()
+        print(f"Deleting shift section with valveID: {valve_id}...")
     return True
 
 
@@ -214,12 +221,12 @@ def delete_shift(shift_id: int, db: Session):
     existing_shift.delete(synchronize_session=False)
     db.commit()
     print(f"Shift {shift_id} was deleted.")
-    existing_timer_controler = db.query(models.TimerControler).filter(
-        models.TimerControler.shift_id == shift_id)
+    existing_timer_controler = db.query(models.Timer).filter(
+        models.Timer.shift_id == shift_id)
     while existing_timer_controler.first():
         existing_timer_controler.delete(synchronize_session=False)
         db.commit()
-        print(f"Deleting timer controler for shift {shift_id}...")
+        print(f"Deleting timer for shift {shift_id}...")
     return True
 
 
@@ -237,6 +244,10 @@ def update_shift(db: Session, shift: devices.UpdateShift, shift_id: int):
 
 def get_shift_sections(shift_id: int, db: Session):
     return db.query(models.Section).filter(models.Section.shift_id == shift_id).all()
+
+
+def get_sections(db: Session, skip: int = 0, limit: int = 50):
+    return db.query(models.Section).offset(skip).limit(limit).all()
 
 
 def get_section(id: int, db: Session):
@@ -386,7 +397,7 @@ def do_timers_interfere(timer1, timer2):
                 return False
 
 
-def change_timer_settings(db: Session, tcontroler: devices.TimerControl, id: int):
+def change_timer_settings(db: Session, tcontroler: devices.TimerUpdate, id: int):
     controler_query = db.query(models.Timer).filter(
         models.Timer.id == id)
     if not controler_query.first():

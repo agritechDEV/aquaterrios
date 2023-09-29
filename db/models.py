@@ -175,7 +175,8 @@ class FlowData(Base):
     __tablename__ = "flow_data"
 
     id = Column(Integer, primary_key=True)
-    pump_id = Column(String(25), ForeignKey("pumps.pump_id"), nullable=False)
+    pump_id = Column(String(25), ForeignKey(
+        "pumps.pump_id", ondelete="CASCADE"), nullable=False)
     flow_rate = Column(Float)
     date = Column(TIMESTAMP(timezone=True), nullable=False,
                   server_default=text('now()'))
@@ -186,7 +187,7 @@ class SensorData(Base):
 
     id = Column(Integer, primary_key=True)
     sensor_id = Column(String(25), ForeignKey(
-        "sensors.sensor_id"), nullable=False)
+        "sensors.sensor_id", ondelete="CASCADE"), nullable=False)
     level_1 = Column(Float)
     level_2 = Column(Float)
     level_3 = Column(Float)
@@ -212,7 +213,8 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True)
-    user = Column(String(25), ForeignKey("users.username"), nullable=False)
+    user = Column(String(25), ForeignKey(
+        "users.username", ondelete="CASCADE"), nullable=False)
     message = Column(Text)
     read = Column(Boolean)
     date = Column(TIMESTAMP(timezone=True), nullable=False,

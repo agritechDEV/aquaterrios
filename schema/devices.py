@@ -137,7 +137,16 @@ class SensorControler(BaseModel):
 
 
 class SControl(BaseModel):
+    id: int
     sensor_id: Union[str, None] = None
+
+    class Config:
+        orm_mode = True
+
+
+class SControlWithID(BaseModel):
+    detail: str = "New section was successfully added to shift"
+    id: int
 
     class Config:
         orm_mode = True
@@ -168,8 +177,34 @@ class Section(BaseModel):
         orm_mode = True
 
 
+class SectionWithID(BaseModel):
+    detail: str = "New section was successfully added to shift"
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 class TimerControl(BaseModel):
     shift_id: int
+    Mon: Optional[bool]
+    Tue: Optional[bool]
+    Wed: Optional[bool]
+    Thu: Optional[bool]
+    Fri: Optional[bool]
+    Sat: Optional[bool]
+    Sun: Optional[bool]
+    starts: Optional[time]
+    stops: Optional[time]
+    updated_at: datetime = datetime.now()
+
+    def serialize(self):
+        return {"Mon": self.Mon, "Tue": self.Tue, "Wed": self.Wed, "Thu": self.Thu,
+                "Fri": self.Fri, "Sat": self.Sat, "Sun": self.Sun,
+                "starts": str(self.starts), "stops": str(self.stops)}
+
+
+class TimerUpdate(BaseModel):
     Mon: Optional[bool]
     Tue: Optional[bool]
     Wed: Optional[bool]
@@ -203,6 +238,14 @@ class TControl(BaseModel):
         orm_mode = True
 
 
+class TControlWithID(BaseModel):
+    detail: str = "New timer was successfully added to shift"
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 class AddShift(BaseModel):
     system_id: int
     created_at: datetime = datetime.now()
@@ -217,6 +260,14 @@ class Shifts(BaseModel):
     id: int
     shifts_sections: List[Section] = []
     shift_timers: List[TControl] = []
+
+    class Config:
+        orm_mode = True
+
+
+class ShiftsWithID(BaseModel):
+    detail: str = "New shift was successfully added to system"
+    id: int
 
     class Config:
         orm_mode = True

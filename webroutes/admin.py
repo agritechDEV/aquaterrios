@@ -106,23 +106,28 @@ def admin_page(request: Request, db: Session = Depends(get_db), current_user: Us
     if not current_user.admin:
         return {"detali": "You are not authorized"}
     systems = devices.get_systems(db=db)
-    valve_mode_options = ["SENSOR", "TIMER"]
     valves = devices.get_valves(db=db)
-    return templates.TemplateResponse("valves.html", {"request": request, "systems": systems, "modes": valve_mode_options,
+    sections = devices.get_sections(db=db)
+    return templates.TemplateResponse("valves.html", {"request": request, "systems": systems, "sections": sections,
                                                       "valves": valves, "current_user": current_user, "users": users})
 
 
 @web_router.get("/sensors")
 def admin_page(request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     users = get_users(db=db)
+    sensor_data = []
     if not current_user:
         return {"detail": "You are not logged in"}
     if not current_user.admin:
         return {"detali": "You are not authorized"}
     systems = devices.get_systems(db=db)
     sensors = devices.get_sensors(db=db)
+    for sensor in sensors:
+        data = devices.get_sensor_data(db=db, sensor_id=sensor.sensor_id)
+        sensor_data.append(data)
+
     return templates.TemplateResponse("sensors.html", {"request": request, "systems": systems, "sensors": sensors,
-                                                       "current_user": current_user, "users": users})
+                                                       "current_user": current_user, "users": users, "sensor_data": sensor_data})
 
 
 @web_router.get("/logs")
@@ -153,6 +158,9 @@ def system(id: int, request: Request, db: Session = Depends(get_db), current_use
     green_sensors = []
     blue_sensors = []
     sensor_data = []
+    controlers = []
+    used_valves = []
+    week_days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     if not current_user:
         return {"detail": "You are not logged in"}
@@ -160,23 +168,35 @@ def system(id: int, request: Request, db: Session = Depends(get_db), current_use
     for sensor in system.system_sensors:
         if sensor.readings < 50:
             red_sensors.append(sensor)
-        elif sensor.readings > 50 and sensor.readings < 80:
+        elif sensor.readings >= 50 and sensor.readings < 80:
             green_sensors.append(sensor)
         else:
             blue_sensors.append(sensor)
     if current_user.username != system.owner and not current_user.admin:
         return {"detail": "You are not authorized"}
     for pump in system.system_pumps:
-        pump_logs = devices.get_dev_logs(db=db, dev_id=pump.pump_id)
+        pumps_logs = devices.get_dev_logs(db=db, dev_id=pump.pump_id)
+        for pump_log in pumps_logs:
+            pump_logs.append(pump_log)
     for valve in system.system_valves:
-        valve_logs = devices.get_dev_logs(db=db, dev_id=valve.valve_id)
+        valves_logs = devices.get_dev_logs(db=db, dev_id=valve.valve_id)
+        for valve_log in valves_logs:
+            valve_logs.append(valve_log)
     for sensor in system.system_sensors:
-        sensor_logs = devices.get_dev_logs(db=db, dev_id=sensor.sensor_id)
+        sensors_logs = devices.get_dev_logs(db=db, dev_id=sensor.sensor_id)
+        for sensor_log in sensors_logs:
+            sensor_logs.append(sensor_log)
     for sensor in system.system_sensors:
         data = devices.get_sensor_data(db=db, sensor_id=sensor.sensor_id)
         sensor_data.append(data)
 
+    for shift in system.system_shifts:
+        for section in shift.shifts_sections:
+            used_valves.append(section.valve_id)
+            for controler in section.section_sensors:
+                controlers.append(controler)
+
     return templates.TemplateResponse("system.html", {"request": request, "system": system, "pump_logs": pump_logs, "valve_logs": valve_logs,
                                                       "sensor_logs": sensor_logs, "current_user": current_user, "alerts": alerts, "red_sensors": red_sensors,
                                                       "green_sensors": green_sensors, "blue_sensors": blue_sensors, "sensor_data": sensor_data,
-                                                      "users": users})
+                                                      "users": users, "controlers": controlers, "used_valves": used_valves, "week_days": week_days})

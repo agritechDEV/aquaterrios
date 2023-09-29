@@ -11,7 +11,6 @@
             <th scope="col" class="px-6 py-3">System ID</th>
             <th scope="col" class="px-6 py-3">Shift ID</th>
             <th scope="col" class="px-6 py-3">Current status</th>
-            <th scope="col" class="px-6 py-3">Valve mode</th>
             <th scope="col" class="px-6 py-3">Action</th>
           </tr>
         </thead>
@@ -25,11 +24,10 @@
               # {{ valve.system_id }}
             </td>
             <td class="px-3 py-2">
-                {% if valve.shift_id == None %}
-                N/A
-                {% else %}
-                # {{ valve.shift_id }}
-                {% endif %}
+              {% for section in sections %}
+                {% if valve.valve_id == section.valve_id %}
+                # {{ section.shift_id }}
+                {% endif %} {% endfor %}
             </td>
             <td class="px-3 py-2">
                 {% if valve.status == True %}
@@ -52,7 +50,6 @@
                 </div>
                 {% endif %}
             </td>
-            <td class="px-3 py-2">{{valve.mode}}</td>
             <td class="px-3 py-2">
               <a
                 data-modal-target="delete-{{valve.valve_id}}"
@@ -144,7 +141,7 @@
         {% endfor %}
       </table>
     </div>
-    <div class="flex flex-nowrap">
+    <!-- <div class="flex flex-nowrap">
       <a
         data-modal-target="add-valve-modal"
         data-modal-toggle="add-valve-modal"
@@ -164,7 +161,7 @@
         </svg>
       </a>
     </div>
-    <!-- Main modal -->
+     
     <div
       id="add-valve-modal"
       tabindex="-1"
@@ -172,7 +169,7 @@
       class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
     >
       <div class="relative w-full h-full max-w-md md:h-auto">
-        <!-- Modal content -->
+        
         <div class="relative bg-white rounded-lg shadow">
           <button
             type="button"
@@ -258,7 +255,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
     
     {% endblock %} {% block script %}
     <script>

@@ -201,15 +201,21 @@ def get_system_logs(system_id: int, db: Session = Depends(get_db)):
             detail="Please select active system ID"
         )
 
-    pumps = devices.get_system_pumps(db=db, system_id=system_id)
-    valves = devices.get_system_valves(db=db, system_id=system_id)
-    sensors = devices.get_system_sensors(db=db, system_id=system_id)
-    for pump in pumps:
-        pump_logs = devices.get_dev_logs(db=db, dev_id=pump.pump_id)
-    for valve in valves:
-        valve_logs = devices.get_dev_logs(db=db, dev_id=valve.valve_id)
-    for sensor in sensors:
-        sensor_logs = devices.get_dev_logs(db=db, dev_id=sensor.sensor_id)
+    pump_logs = []
+    valve_logs = []
+    sensor_logs = []
+    for pump in system.system_pumps:
+        pumps_logs = devices.get_dev_logs(db=db, dev_id=pump.pump_id)
+        for pump_log in pumps_logs:
+            pump_logs.append(pump_log)
+    for valve in system.system_valves:
+        valves_logs = devices.get_dev_logs(db=db, dev_id=valve.valve_id)
+        for valve_log in valves_logs:
+            valve_logs.append(valve_log)
+    for sensor in system.system_sensors:
+        sensors_logs = devices.get_dev_logs(db=db, dev_id=sensor.sensor_id)
+        for sensor_log in sensors_logs:
+            sensor_logs.append(sensor_log)
     return [pump_logs, valve_logs, sensor_logs]
 
 

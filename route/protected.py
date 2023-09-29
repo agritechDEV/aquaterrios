@@ -8,7 +8,7 @@ from crud.login import get_current_user
 from crud import users
 from crud import devices
 from schema.users import UserUpdate, AdminUserUpdate, UpdateNote, NoteCreate, LostPassword
-from schema.devices import SystemCreate, AddPump, AddValve, AddSensor, AddShift, SystemUpdate, UpdatePump, UpdateValve, SensorControler, TimerControl, UpdateSensor, UpdateShift, UpdateLog, SectionCreate, SectionUpdate
+from schema.devices import SystemCreate, AddPump, AddValve, AddSensor, AddShift, ShiftsWithID, SystemUpdate, UpdatePump, UpdateValve, SensorControler, TControlWithID, SControlWithID, TimerControl, TimerUpdate, UpdateSensor, UpdateShift, UpdateLog, SectionWithID, SectionCreate, SectionUpdate
 
 base_router = APIRouter()
 
@@ -116,7 +116,7 @@ def create_new_sensor(sensor: AddSensor, db: Session = Depends(get_db), current_
 
 
 # Create shifts
-@base_router.post("/shift")
+@base_router.post("/shift", response_model=ShiftsWithID)
 def create_new_shift(shift: AddShift, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     system = devices.get_system(db=db, system_id=shift.system_id)
     if not system:
@@ -130,8 +130,8 @@ def create_new_shift(shift: AddShift, db: Session = Depends(get_db), current_use
             detail="You are not authorized to update database"
         )
     try:
-        devices.create_shift(db=db, shift=shift)
-        return {"detail": "New shift was successfully added to system"}
+        new_shift = devices.create_shift(db=db, shift=shift)
+        return new_shift
     except:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -141,7 +141,7 @@ def create_new_shift(shift: AddShift, db: Session = Depends(get_db), current_use
 # Create shift's section
 
 
-@base_router.post("/section")
+@base_router.post("/section", response_model=SectionWithID)
 def create_new_shift_section(section: SectionCreate, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     shift = devices.get_shift(db=db, shift_id=section.shift_id)
     if not shift:
@@ -164,8 +164,8 @@ def create_new_shift_section(section: SectionCreate, db: Session = Depends(get_d
         db=db, shift_id=section.shift_id)
     try:
         if section.valve_id in available_valves:
-            devices.create_section(db=db, section=section)
-            return {"detail": "New section was successfully added to shift"}
+            new_section = devices.create_section(db=db, section=section)
+            return new_section
         else:
             return {"detail": "Selected valve is not available. Please try another one."}
     except:
@@ -177,7 +177,7 @@ def create_new_shift_section(section: SectionCreate, db: Session = Depends(get_d
 # Create sensor controler
 
 
-@base_router.post("/sensorControler")
+@base_router.post("/sensorControler", response_model=SControlWithID)
 def create_new_sensor_controler(controler: SensorControler, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     sensor_contolers = devices.get_sensor_controlers(
         db=db, section_id=controler.section_id)
@@ -212,8 +212,9 @@ def create_new_sensor_controler(controler: SensorControler, db: Session = Depend
         if controler.sensor_id not in available_sensors:
             return {"detail": "There is no such sensor in system. Check device ID."}
         else:
-            devices.add_new_sensor_controler(db=db, scontroler=controler)
-            return {"detail": "New section was successfully added to shift"}
+            new_controler = devices.add_new_sensor_controler(
+                db=db, scontroler=controler)
+            return new_controler
     except:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -223,7 +224,7 @@ def create_new_sensor_controler(controler: SensorControler, db: Session = Depend
 # Create timer controler
 
 
-@base_router.post("/timer")
+@base_router.post("/timer", response_model=TControlWithID)
 def create_new_timer(controler: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     check_timers = []
     timers = []
@@ -250,15 +251,14 @@ def create_new_timer(controler: TimerControl, db: Session = Depends(get_db), cur
         system_shifts.append(entry)
     for data in system_shifts:
         for timer in data.shift_timers:
-            print(timer.serialize())
             timers.append(timer)
 
     for timer in timers:
         timer_to_dict = timer.serialize()
         check_timers.append(timer_to_dict)
 
-    if controler.starts >= controler.stops:
-        return {"detail": "Start values must be less than stop value."}
+    # if controler.starts >= controler.stops:
+    #     return {"detail": "Start values must be less than stop value."}
 
     else:
         try:
@@ -266,8 +266,8 @@ def create_new_timer(controler: TimerControl, db: Session = Depends(get_db), cur
                 print("Checking available timers....")
                 if devices.do_timers_interfere(timer1=timer, timer2=controler.serialize()):
                     return {"detail": "Timers match each other."}
-            devices.add_new_timer(db=db, tcontroler=controler)
-            return {"detail": "New section was successfully added to shift"}
+            new_timer = devices.add_new_timer(db=db, tcontroler=controler)
+            return new_timer
         except:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -616,7 +616,7 @@ def change_sensor_controler_settings(controler_id: int, controler_to_update: Sen
 
 
 @base_router.patch("/timer/{id}")
-def change_timer_controler_settings(id: int, controler_to_update: TimerControl, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def change_timer_controler_settings(id: int, controler_to_update: TimerUpdate, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
 
     controler = devices.get_timer(db=db, id=id)
     if not controler:
@@ -624,14 +624,9 @@ def change_timer_controler_settings(id: int, controler_to_update: TimerControl, 
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Could not found controler in database"
         )
-    if controler.shift_id != controler_to_update.shift_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Could not found shift in database"
-        )
     check_timers = []
     timers = []
-    shift = devices.get_shift(db=db, shift_id=controler_to_update.shift_id)
+    shift = devices.get_shift(db=db, shift_id=controler.shift_id)
     if not shift:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -654,8 +649,8 @@ def change_timer_controler_settings(id: int, controler_to_update: TimerControl, 
         system_shifts.append(entry)
     for data in system_shifts:
         for timer in data.shift_timers:
-            print(timer.serialize())
-            timers.append(timer)
+            if timer.id != id:
+                timers.append(timer)
 
     for timer in timers:
         timer_to_dict = timer.serialize()
