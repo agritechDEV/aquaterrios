@@ -161,6 +161,8 @@ def system(id: int, request: Request, db: Session = Depends(get_db), current_use
     controlers = []
     used_valves = []
     week_days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    levels = [{"set_lvl_1": "Measure at 10 cm",
+               "set_lvl_2": "Measure at 20 cm", "set_lvl_3": "Measure at 40 cm"}]
 
     if not current_user:
         return {"detail": "You are not logged in"}
@@ -198,5 +200,5 @@ def system(id: int, request: Request, db: Session = Depends(get_db), current_use
 
     return templates.TemplateResponse("system.html", {"request": request, "system": system, "pump_logs": pump_logs, "valve_logs": valve_logs,
                                                       "sensor_logs": sensor_logs, "current_user": current_user, "alerts": alerts, "red_sensors": red_sensors,
-                                                      "green_sensors": green_sensors, "blue_sensors": blue_sensors, "sensor_data": sensor_data,
+                                                      "green_sensors": green_sensors, "blue_sensors": blue_sensors, "sensor_data": sensor_data, "levels": levels,
                                                       "users": users, "controlers": controlers, "used_valves": used_valves, "week_days": week_days})
