@@ -138,6 +138,7 @@ class SensorControler(BaseModel):
 
 class SControl(BaseModel):
     id: int
+    updated_at: datetime
     sensor_id: Union[str, None] = None
 
     class Config:
@@ -167,6 +168,7 @@ class SectionUpdate(BaseModel):
 
 class Section(BaseModel):
     id: int
+    updated_at: datetime
     valve_id: str
     sensors_settings: Optional[str]
     starts_at: Optional[float]
@@ -224,6 +226,7 @@ class TimerUpdate(BaseModel):
 
 class TControl(BaseModel):
     id: int
+    updated_at: datetime
     Mon: Union[bool, None] = None
     Tue: Union[bool, None] = None
     Wed: Union[bool, None] = None
@@ -258,11 +261,15 @@ class UpdateShift(BaseModel):
 
 class Shifts(BaseModel):
     id: int
+    updated_at: datetime
     shifts_sections: List[Section] = []
     shift_timers: List[TControl] = []
 
     class Config:
         orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.timestamp(),
+        }
 
 
 class ShiftsWithID(BaseModel):
