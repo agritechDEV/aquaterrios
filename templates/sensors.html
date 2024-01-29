@@ -1,4 +1,20 @@
-{% extends "components/base.html" %} {% block navbar %} {% include
+{% extends "components/base.html" %}  {% block head %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script
+  type="text/javascript"
+  src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="https://cdnjs.cloudflare.com/ajax/libs/easy-pie-chart/2.1.6/jquery.easypiechart.min.js"
+></script>
+{% endblock %} {% block style %} .chart { position: relative; display:
+inline-block; width: 80px; height: 80px; margin-top: 10px; margin-bottom: 10px;
+text-align: center; } .chart canvas { position: absolute; top: 0; left: 0; }
+.percent { display: inline-block; line-height: 70px; z-index: 2; }
+.percent:after { content: '%'; margin-left: 0.1em; font-size: .8em; } 
+{% endblock %} {% block navbar %} {% include
     "components/navbar.html"%} {% endblock %} {% block sidebar %} {% if
     current_user.admin: %} {% include "components/adminbar.html"%} {% endif %} {%
     endblock %} {% block content %}
@@ -7,10 +23,12 @@
       <table class="w-full text-sm text-center text-gray-500">
         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
           <tr>
-            <th scope="col" class="px-6 py-3">Sensor ID</th>
             <th scope="col" class="px-6 py-3">System ID</th>
+            <th scope="col" class="px-6 py-3">Sensor ID</th>
             <th scope="col" class="px-6 py-3">Current readings</th>
-            <th scope="col" class="px-6 py-3">Current shift</th>
+            <th scope="col" class="px-6 py-3">Temp.[C]</th>
+            <th scope="col" class="px-6 py-3">Moist.[%]</th>
+            <th scope="col" class="px-6 py-3">Battery[%]</th>
             <th scope="col" class="px-6 py-3">View Info</th>
             <th scope="col" class="px-6 py-3">Action</th>
           </tr>
@@ -19,13 +37,76 @@
         <tbody class="text-xs text-gray-700 text-center bg-gray-50">
           <tr class="bg-white border-b hover:bg-gray-50">
             <th class="px-3 py-2 uppercase text-[#0b545c] font-bold text-xs">
-              {{ sensor.sensor_id }}
+              # {{ sensor.system_id }}
             </th>
             <td class="px-3 py-2 uppercase font-semibold text-xs">
-              # {{ sensor.system_id }}
+              <div class="text-xs text-blue-500 mr-4 flex">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  class="w-6 h-6"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M5.636 4.575a.75.75 0 010 1.06 9 9 0 000 12.729.75.75 0 01-1.06 1.06c-4.101-4.1-4.101-10.748 0-14.849a.75.75 0 011.06 0zm12.728 0a.75.75 0 011.06 0c4.101 4.1 4.101 10.749 0 14.85a.75.75 0 11-1.06-1.061 9 9 0 000-12.728.75.75 0 010-1.06zM7.757 6.696a.75.75 0 010 1.061 6 6 0 000 8.485.75.75 0 01-1.06 1.061 7.5 7.5 0 010-10.607.75.75 0 011.06 0zm8.486 0a.75.75 0 011.06 0 7.5 7.5 0 010 10.607.75.75 0 01-1.06-1.06 6 6 0 000-8.486.75.75 0 010-1.06zM9.879 8.818a.75.75 0 010 1.06 3 3 0 000 4.243.75.75 0 11-1.061 1.06 4.5 4.5 0 010-6.363.75.75 0 011.06 0zm4.242 0a.75.75 0 011.061 0 4.5 4.5 0 010 6.364.75.75 0 01-1.06-1.06 3 3 0 000-4.244.75.75 0 010-1.06zM10.875 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <div class="ml-2">{{sensor.sensor_id}}</div>
+              </div>
             </td>
-            <td class="px-3 py-2">{{ sensor.readings }}</td>
-            <td class="px-3 py-2"># {{ sensor.shift_id }}</td>
+            <td class="px-3 py-2">
+              {% for data in sensor_data %}
+              {% if data.sensor_id == sensor.sensor_id %}
+              <span class="chart" data-percent=" {{ data.level_1 }}">
+                <span class="percent"></span>
+              </span>
+              <span class="chart" data-percent=" {{ data.level_2 }}">
+                <span class="percent"></span>
+              </span>
+              <span class="chart" data-percent=" {{ data.level_3 }}">
+                <span class="percent"></span>
+              </span>
+              {% endif %}
+              {% endfor %}
+            </td>
+            <td class="px-3 py-2">
+              {% for data in sensor_data %}
+              {% if data.sensor_id == sensor.sensor_id %}
+               {{ data.temperature }}
+               {% endif %}
+               {% endfor %}</td>
+            <td class="px-3 py-2"> 
+              {% for data in sensor_data %}
+              {% if data.sensor_id == sensor.sensor_id %}
+              {{ data.moisture }}
+              {% endif %}
+              {% endfor %}</td>
+            <td class="px-3 py-2">
+              {% for data in sensor_data %}
+              {% if data.sensor_id == sensor.sensor_id %} 
+              <div class="col mx-auto text-sm flex items-center">
+                <svg
+                  style="color: blue"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  class="bi bi-battery-half"
+                  viewBox="0 0 16 16"
+                >
+                  <path d="M2 6h5v4H2V6z" fill="blue"></path>
+                  <path
+                    d="M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z"
+                    fill="blue"
+                  ></path></svg
+                ><span class="px-3 text-xs font-medium">
+                  {{data.bat_level}} %</span
+                >
+              </div>
+              {% endif %}
+              {% endfor %}</td>
             <td class="px-3 py-2">
               <a
                 href="/sensor/{{sensor.sensor_id}}"
@@ -137,7 +218,7 @@
         {% endfor %}
       </table>
     </div>
-    <div class="flex flex-nowrap">
+    <!-- <div class="flex flex-nowrap">
       <a
         data-modal-target="add-sensor-modal"
         data-modal-toggle="add-sensor-modal"
@@ -156,17 +237,17 @@
           />
         </svg>
       </a>
-    </div>
+    </div> -->
     <!-- Main modal -->
-    <div
+    <!--<div
       id="add-sensor-modal"
       tabindex="-1"
       aria-hidden="true"
       class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full"
     >
-      <div class="relative w-full h-full max-w-md md:h-auto">
+      <div class="relative w-full h-full max-w-md md:h-auto"> -->
         <!-- Modal content -->
-        <div class="relative bg-white rounded-lg shadow">
+       <!--- <div class="relative bg-white rounded-lg shadow">
           <button
             type="button"
             class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
@@ -233,9 +314,22 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
     
     {% endblock %} {% block script %}
+    <script>
+      $(".chart").easyPieChart({
+        barColor: function (value) {
+          return value < 50 ? "#f8ae52" : value < 80 ? "#97cd79" : "#3aa3be";
+        },
+        lineWidth: 8,
+        size: 75,
+        easing: "easeOutBounce",
+        onStep: function (from, to, percent) {
+          $(this.el).find(".percent").text(Math.round(percent));
+        },
+      });
+    </script>
     <script>
         function deleteSensor(id) {
             fetch("/base/sensor/" + id, {

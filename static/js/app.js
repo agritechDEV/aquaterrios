@@ -81,6 +81,7 @@ async function postFormDataAsJson({ url, formData }) {
   };
 
   const response = await fetch(url, fetchOptions);
+  console.log(response);
 
   if (!response.ok) {
     const errorMessage = await response.json();
@@ -118,12 +119,13 @@ const addSensor = document.querySelector("#addSensor");
 if (addSensor) {
   addSensor.addEventListener("submit", handlePostFormSubmit);
 }
-// Create new sensor shift
-const addSensorShiftForm = document.getElementById("addSensorShiftForm");
-if (addSensorShiftForm) {
-  addSensorShiftForm.addEventListener("submit", handlePostFormSubmit);
+// Create new shift
+const addShiftForm = document.getElementById("addShiftForm");
+if (addShiftForm) {
+  addShiftForm.addEventListener("submit", handlePostFormSubmit);
 }
-// Create new timer shift
+
+// Create new timer
 const addTimerShiftForm = document.getElementById("addTimerShiftForm");
 if (addTimerShiftForm) {
   addTimerShiftForm.addEventListener("submit", handlePostFormSubmit);

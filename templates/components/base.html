@@ -23,7 +23,7 @@
         <div class="flex-cols md:h-4/5">
        
             <div class="flex-cols md:flex flex-row md:h-full">
-                <div class="xs:w-full md:w-48 md:pr-1"> {% block sidebar %} {% endblock %} </div>
+                {% block sidebar %} <div class="xs:w-full md:w-48 md:pr-1">  </div>{% endblock %}
                 
                 <div class="absolute top-0 right-0 md:h-14 "> {% block navbar %} {% endblock %} </div>
    
